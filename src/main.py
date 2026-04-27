@@ -12,13 +12,15 @@ from src.core import (
     export_result,
     fetch_institutional_data,
     fetch_margin_data,
-    fetch_monthly_data,
+    fetch_period_data,
     fetch_price_data,
     find_row_by_stock_code,
     http_get,
-    merge_monthly_data,
+    iter_month_keys,
     parse_args,
     parse_month,
+    resolve_period_range,
+    roc_to_date,
     roc_to_gregorian,
     write_output,
 )
@@ -27,15 +29,15 @@ from src.core import (
 def run_cli(argv: list[str] | None = None) -> int:
     try:
         config = parse_args(argv)
-        result = fetch_monthly_data(config)
+        result = fetch_period_data(config)
         write_output(result, config.output_path, config.output_format)
     except (StockCrawlerError, argparse.ArgumentTypeError) as exc:
         print(f"錯誤：{exc}", file=sys.stderr)
         return 1
 
     print(
-        f"已儲存 {config.stock_no} {config.display_month} 的 {config.dataset} 資料到 "
-        f"{config.output_path.resolve()}"
+        f"已儲存 {config.stock_no} 截至 {config.display_month} 的最近 {config.days} 天 "
+        f"{config.dataset} 資料到 {config.output_path.resolve()}"
     )
     return 0
 
@@ -57,13 +59,15 @@ __all__ = [
     "export_result",
     "fetch_institutional_data",
     "fetch_margin_data",
-    "fetch_monthly_data",
+    "fetch_period_data",
     "fetch_price_data",
     "find_row_by_stock_code",
     "http_get",
-    "merge_monthly_data",
+    "iter_month_keys",
     "parse_args",
     "parse_month",
+    "resolve_period_range",
+    "roc_to_date",
     "roc_to_gregorian",
     "run",
     "run_cli",
