@@ -1,0 +1,17 @@
+[project]
+name = "stock-crawler-exe"
+version = "0.1.0"
+description = "TWSE stock data crawler with Windows executable packaging support"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "tim" }
+]
+
+[project.scripts]
+stock-crawler = "src.main:main"
+stock-crawler-gui = "src.gui:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
