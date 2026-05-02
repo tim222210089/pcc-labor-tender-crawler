@@ -1,0 +1,306 @@
+from __future__ import annotations
+
+import argparse
+import base64
+import json
+import os
+import smtplib
+import sys
+import traceback
+from dataclasses import dataclass
+from datetime import date, datetime
+from email.message import EmailMessage
+from pathlib import Path
+from typing import Any
+
+import requests
+
+from export_pcc_labor_tenders import (
+    fetch_all_records,
+    fetch_award_records,
+    filter_keyword_matches,
+    filter_labor_records,
+    parse_cli_date,
+    parse_keywords,
+    resolve_target_date,
+    write_workbook,
+)
+
+
+DRIVE_FILE_FIELDS = "id,name,webViewLink,webContentLink"
+EXCEL_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@dataclass(frozen=True)
+class ExportResult:
+    output_path: Path
+    target_date: date
+    keyword_matches: int
+    keyword_awarded_tenders: int
+    keyword_failed_awards: int
+
+
+@dataclass(frozen=True)
+class UploadResult:
+    file_id: str
+    web_view_link: str
+    web_content_link: str
+
+
+def get_required_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
+def load_json_env(name: str) -> dict[str, Any]:
+    raw = get_required_env(name)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{name} must be valid JSON") from exc
+
+
+def export_excel(raw_date: str, output_path: Path, keywords_raw: str) -> ExportResult:
+    _, explicit_date = parse_cli_date(raw_date)
+    keywords = parse_keywords(keywords_raw)
+    target_date = resolve_target_date(explicit_date)
+
+    records = fetch_all_records(explicit_date)
+    labor_records = filter_labor_records(records)
+    keyword_records = filter_keyword_matches(labor_records, keywords)
+    awarded_rows = fetch_award_records(target_date, "TENDER_STATUS_1")
+    failed_rows = fetch_award_records(target_date, "TENDER_STATUS_2")
+    keyword_awarded_rows = filter_keyword_matches(awarded_rows, keywords)
+    keyword_failed_rows = filter_keyword_matches(failed_rows, keywords)
+    write_workbook(output_path, keyword_records, keyword_awarded_rows, keyword_failed_rows)
+
+    return ExportResult(
+        output_path=output_path,
+        target_date=target_date,
+        keyword_matches=len(keyword_records),
+        keyword_awarded_tenders=len(keyword_awarded_rows),
+        keyword_failed_awards=len(keyword_failed_rows),
+    )
+
+
+def build_drive_service(service_account_info: dict[str, Any]):
+    from google.oauth2 import service_account
+    from googleapiclient.discovery import build
+
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/drive"],
+    )
+    return build("drive", "v3", credentials=credentials, cache_discovery=False)
+
+
+def upload_to_drive(output_path: Path, folder_id: str, service_account_info: dict[str, Any]) -> UploadResult:
+    from googleapiclient.http import MediaFileUpload
+
+    service = build_drive_service(service_account_info)
+    media = MediaFileUpload(str(output_path), mimetype=EXCEL_MIME_TYPE, resumable=False)
+    metadata = {
+        "name": output_path.name,
+        "parents": [folder_id],
+        "mimeType": EXCEL_MIME_TYPE,
+    }
+    created = (
+        service.files()
+        .create(body=metadata, media_body=media, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True)
+        .execute()
+    )
+    file_id = created["id"]
+    service.permissions().create(
+        fileId=file_id,
+        body={"role": "reader", "type": "anyone"},
+        fields="id",
+        supportsAllDrives=True,
+    ).execute()
+    refreshed = service.files().get(fileId=file_id, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True).execute()
+    return UploadResult(
+        file_id=file_id,
+        web_view_link=refreshed.get("webViewLink", ""),
+        web_content_link=refreshed.get("webContentLink", ""),
+    )
+
+
+def send_line_message(message: str) -> None:
+    token = get_required_env("LINE_CHANNEL_ACCESS_TOKEN")
+    user_id = get_required_env("LINE_USER_ID")
+    response = requests.post(
+        "https://api.line.me/v2/bot/message/push",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        json={"to": user_id, "messages": [{"type": "text", "text": message}]},
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"LINE push failed: HTTP {response.status_code} {response.text}")
+
+
+def gmail_api_credentials(config: dict[str, Any]):
+    from google.oauth2.credentials import Credentials
+
+    required = ["client_id", "client_secret", "refresh_token"]
+    missing = [key for key in required if not config.get(key)]
+    if missing:
+        raise RuntimeError(f"Gmail OAuth config missing keys: {', '.join(missing)}")
+    return Credentials(
+        token=None,
+        refresh_token=config["refresh_token"],
+        token_uri=config.get("token_uri", "https://oauth2.googleapis.com/token"),
+        client_id=config["client_id"],
+        client_secret=config["client_secret"],
+        scopes=["https://www.googleapis.com/auth/gmail.send"],
+    )
+
+
+def send_gmail_api(config: dict[str, Any], to_addr: str, subject: str, body: str) -> None:
+    from googleapiclient.discovery import build
+
+    sender = config.get("sender") or config.get("from") or to_addr
+    message = EmailMessage()
+    message["To"] = to_addr
+    message["From"] = sender
+    message["Subject"] = subject
+    message.set_content(body)
+
+    encoded = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
+    service = build("gmail", "v1", credentials=gmail_api_credentials(config), cache_discovery=False)
+    service.users().messages().send(userId="me", body={"raw": encoded}).execute()
+
+
+def send_smtp(config: dict[str, Any], to_addr: str, subject: str, body: str) -> None:
+    sender = config.get("sender") or config.get("username")
+    if not sender:
+        raise RuntimeError("SMTP config requires sender or username")
+    message = EmailMessage()
+    message["To"] = to_addr
+    message["From"] = sender
+    message["Subject"] = subject
+    message.set_content(body)
+
+    host = config.get("host", "smtp.gmail.com")
+    port = int(config.get("port", 587))
+    username = config.get("username")
+    password = config.get("password")
+    with smtplib.SMTP(host, port, timeout=30) as smtp:
+        if config.get("use_tls", True):
+            smtp.starttls()
+        if username and password:
+            smtp.login(username, password)
+        smtp.send_message(message)
+
+
+def send_gmail_notification(subject: str, body: str) -> None:
+    config_raw = os.getenv("GMAIL_CLIENT_OR_SERVICE_CONFIG")
+    to_addr = os.getenv("GMAIL_NOTIFY_TO")
+    if not config_raw or not to_addr:
+        print("Gmail notification skipped: missing GMAIL_CLIENT_OR_SERVICE_CONFIG or GMAIL_NOTIFY_TO")
+        return
+
+    try:
+        config = json.loads(config_raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("GMAIL_CLIENT_OR_SERVICE_CONFIG must be valid JSON") from exc
+
+    config_type = config.get("type", "gmail_oauth")
+    if config_type == "smtp":
+        send_smtp(config, to_addr, subject, body)
+        return
+    if config_type in {"gmail_oauth", "oauth"}:
+        send_gmail_api(config, to_addr, subject, body)
+        return
+    raise RuntimeError(f"Unsupported Gmail config type: {config_type}")
+
+
+def success_message(export_result: ExportResult, upload_result: UploadResult) -> str:
+    return "\n".join(
+        [
+            "PCC 勞務標案 Excel 已更新",
+            f"日期: {export_result.target_date.isoformat()}",
+            f"關鍵字公告: {export_result.keyword_matches}",
+            f"關鍵字決標: {export_result.keyword_awarded_tenders}",
+            f"關鍵字無法決標: {export_result.keyword_failed_awards}",
+            f"Excel: {upload_result.web_view_link}",
+        ]
+    )
+
+
+def summary_body(export_result: ExportResult, upload_result: UploadResult) -> str:
+    return "\n".join(
+        [
+            "每週 PCC 勞務標案自動化摘要",
+            "",
+            f"最新執行日期: {datetime.now().isoformat(timespec='seconds')}",
+            f"資料日期: {export_result.target_date.isoformat()}",
+            f"Excel 檔名: {export_result.output_path.name}",
+            f"Google Drive file id: {upload_result.file_id}",
+            f"Excel 連結: {upload_result.web_view_link}",
+            "",
+            f"關鍵字公告: {export_result.keyword_matches}",
+            f"關鍵字決標: {export_result.keyword_awarded_tenders}",
+            f"關鍵字無法決標: {export_result.keyword_failed_awards}",
+        ]
+    )
+
+
+def run(args: argparse.Namespace) -> int:
+    output_path = Path(args.output).expanduser().resolve()
+    try:
+        export_result = export_excel(args.date, output_path, args.keywords)
+        upload_result = upload_to_drive(
+            export_result.output_path,
+            get_required_env("GOOGLE_DRIVE_FOLDER_ID"),
+            load_json_env("GOOGLE_SERVICE_ACCOUNT_JSON"),
+        )
+        send_line_message(success_message(export_result, upload_result))
+        if args.send_weekly_summary:
+            send_gmail_notification(
+                f"PCC 勞務標案每週摘要 {export_result.target_date.isoformat()}",
+                summary_body(export_result, upload_result),
+            )
+        print(f"output={export_result.output_path}")
+        print(f"drive_file_id={upload_result.file_id}")
+        print(f"drive_link={upload_result.web_view_link}")
+        print(f"keyword_matches={export_result.keyword_matches}")
+        print(f"keyword_awarded_tenders={export_result.keyword_awarded_tenders}")
+        print(f"keyword_failed_awards={export_result.keyword_failed_awards}")
+        return 0
+    except Exception:
+        failure = traceback.format_exc()
+        print(failure, file=sys.stderr)
+        try:
+            send_gmail_notification("PCC 勞務標案自動化失敗", failure)
+        except Exception as notify_error:
+            print(f"Gmail failure notification failed: {notify_error}", file=sys.stderr)
+        return 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Run PCC export, upload it to Drive, and send notifications.")
+    parser.add_argument("--date", default="today", help="today or YYYY-MM-DD")
+    parser.add_argument("--output", default="pcc_labor_tenders_today.xlsx", help="output xlsx path")
+    parser.add_argument(
+        "--keywords",
+        default="委託,設計,監造,技術服務",
+        help="comma-separated title keywords",
+    )
+    parser.add_argument(
+        "--send-weekly-summary",
+        action="store_true",
+        help="send Gmail weekly summary after a successful run",
+    )
+    return parser
+
+
+def main() -> int:
+    return run(build_parser().parse_args())
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

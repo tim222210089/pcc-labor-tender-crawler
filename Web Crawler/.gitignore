@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+.env
+pcc_labor_tenders_*.xlsx

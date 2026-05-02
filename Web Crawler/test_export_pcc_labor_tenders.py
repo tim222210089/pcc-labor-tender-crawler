@@ -1,0 +1,178 @@
+﻿import unittest
+
+from export_pcc_labor_tenders import (
+    AwardRecord,
+    TenderRecord,
+    build_all_page_links,
+    extract_title,
+    filter_keyword_matches,
+    normalize_space,
+    parse_award_rows,
+    parse_next_page_links,
+    parse_tender_rows,
+    slash_date_string,
+)
+
+
+TENDER_ROW_HTML = """
+<table id="tpam">
+  <tr class="tb_b2">
+    <td>1</td>
+    <td>臺中市政府運動局</td>
+    <td>
+      115043001<br>
+      <script>var hw = Geps3.CNS.pageCode2Img("臺中市立豐原體育場整修工程委託規劃設計監造技術服務");$("#1").html(hw);</script>
+    </td>
+    <td>01</td>
+    <td>經公開評選或公開徵求之限制性招標</td>
+    <td>勞務類</td>
+    <td>115/05/04</td>
+    <td>115/05/11</td>
+    <td>3,450,000</td>
+    <td>檢視</td>
+  </tr>
+</table>
+"""
+
+AWARD_ROW_HTML = """
+<table id="tpam">
+  <tr class="tb_b2">
+    <td>1</td>
+    <td>僑務委員會</td>
+    <td>
+      1150010041B<br>
+      <script>var hw = Geps3.CNS.pageCode2Img("115年海外僑界急難救助協會『守護海外僑社能量，構築韌性家園』工作研討會");$("#1").html(hw);</script>
+    </td>
+    <td>公開取得報價單或企劃書</td>
+    <td>勞務類</td>
+    <td>115/04/30</td>
+    <td>1,420,000</td>
+    <td>001</td>
+    <td></td>
+    <td>檢視</td>
+  </tr>
+</table>
+"""
+
+FAILED_AWARD_ROW_HTML = """
+<table id="tpam">
+  <tr class="tb_b2">
+    <td>1</td>
+    <td>新北市政府原住民族行政局</td>
+    <td>
+      1150403<br>
+      <script>var hw = Geps3.CNS.pageCode2Img("115年度新北市原住民族部落大學成果展委託專業服務案");$("#1").html(hw);</script>
+    </td>
+    <td>公開取得報價單或企劃書</td>
+    <td>勞務類</td>
+    <td>115/04/30</td>
+    <td></td>
+    <td></td>
+    <td>001</td>
+    <td>檢視</td>
+  </tr>
+</table>
+"""
+
+
+class ExportPccLaborTendersTests(unittest.TestCase):
+    def test_normalize_space(self) -> None:
+        self.assertEqual(normalize_space(" 委託 \n 設計\t監造 "), "委託 設計 監造")
+
+    def test_slash_date_string(self) -> None:
+        from datetime import date
+
+        self.assertEqual(slash_date_string(date(2026, 4, 30)), "2026/04/30")
+
+    def test_extract_title_from_script(self) -> None:
+        from bs4 import BeautifulSoup
+
+        soup = BeautifulSoup(TENDER_ROW_HTML, "html.parser")
+        title_cell = soup.find_all("td")[2]
+        self.assertEqual(
+            extract_title(title_cell),
+            "臺中市立豐原體育場整修工程委託規劃設計監造技術服務",
+        )
+
+    def test_parse_tender_rows(self) -> None:
+        rows = parse_tender_rows(TENDER_ROW_HTML)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].agency, "臺中市政府運動局")
+        self.assertEqual(rows[0].budget, "3,450,000")
+        self.assertEqual(rows[0].procurement_type, "勞務類")
+
+    def test_parse_award_rows(self) -> None:
+        rows = parse_award_rows(AWARD_ROW_HTML)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0],
+            AwardRecord(
+                "僑務委員會",
+                "115年海外僑界急難救助協會『守護海外僑社能量，構築韌性家園』工作研討會",
+                "115/04/30",
+                "1,420,000",
+                "001",
+                "",
+            ),
+        )
+
+    def test_parse_failed_award_rows(self) -> None:
+        rows = parse_award_rows(FAILED_AWARD_ROW_HTML)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].agency, "新北市政府原住民族行政局")
+        self.assertEqual(rows[0].award_amount, "")
+        self.assertEqual(rows[0].award_notice, "")
+        self.assertEqual(rows[0].failed_award, "001")
+
+    def test_parse_next_page_links(self) -> None:
+        html = """
+        <a href="?tenderType=TENDER_DECLARATION&amp;d-49738-p=2&amp;pageSize=100">2</a>
+        <a href="?tenderType=TENDER_DECLARATION&amp;d-49738-p=3&amp;pageSize=100">3</a>
+        """
+        self.assertEqual(
+            parse_next_page_links(html),
+            [
+                "?tenderType=TENDER_DECLARATION&d-49738-p=2&pageSize=100",
+                "?tenderType=TENDER_DECLARATION&d-49738-p=3&pageSize=100",
+            ],
+        )
+
+    def test_build_all_page_links_from_sparse_pager(self) -> None:
+        links = [
+            "?tenderType=TENDER_DECLARATION&d-49738-p=2&pageSize=100",
+            "?tenderType=TENDER_DECLARATION&d-49738-p=8&pageSize=100",
+            "?tenderType=TENDER_DECLARATION&d-49738-p=15&pageSize=100",
+        ]
+        built = build_all_page_links(links)
+        self.assertEqual(len(built), 14)
+        self.assertEqual(built[0], "?tenderType=TENDER_DECLARATION&d-49738-p=2&pageSize=100")
+        self.assertEqual(built[-1], "?tenderType=TENDER_DECLARATION&d-49738-p=15&pageSize=100")
+
+    def test_filter_keyword_matches(self) -> None:
+        rows = [
+            TenderRecord("A", "工程委託設計服務", "115/01/01", "115/01/10", "100", "勞務類"),
+            TenderRecord("B", "設備採購", "115/01/01", "115/01/10", "200", "勞務類"),
+        ]
+        matches = filter_keyword_matches(rows, ["委託", "設計"])
+        self.assertEqual([row.agency for row in matches], ["A"])
+
+    def test_filter_keyword_matches_excludes_standalone_delegate(self) -> None:
+        rows = [
+            TenderRecord("A", "工程委託案", "115/01/01", "115/01/10", "100", "勞務類"),
+            TenderRecord("B", "委託設計服務案", "115/01/01", "115/01/10", "200", "勞務類"),
+            TenderRecord("C", "監造技術服務案", "115/01/01", "115/01/10", "300", "勞務類"),
+        ]
+        matches = filter_keyword_matches(rows, ["委託", "設計", "監造", "技術服務"])
+        self.assertEqual([row.agency for row in matches], ["B", "C"])
+
+    def test_filter_keyword_matches_keeps_delegate_when_it_is_only_keyword(self) -> None:
+        rows = [
+            TenderRecord("A", "工程委託案", "115/01/01", "115/01/10", "100", "勞務類"),
+            TenderRecord("B", "設備採購", "115/01/01", "115/01/10", "200", "勞務類"),
+        ]
+        matches = filter_keyword_matches(rows, ["委託"])
+        self.assertEqual([row.agency for row in matches], ["A"])
+
+
+if __name__ == "__main__":
+    unittest.main()
