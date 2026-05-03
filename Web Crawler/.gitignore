@@ -1,4 +1,6 @@
 __pycache__/
 *.pyc
 .env
+oauth_client*.json
+google_drive_oauth_config.json
 pcc_labor_tenders_*.xlsx
