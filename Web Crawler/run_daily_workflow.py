@@ -96,6 +96,41 @@ def build_drive_service(service_account_info: dict[str, Any]):
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
 
+def build_drive_oauth_service(config: dict[str, Any]):
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+
+    required = ["client_id", "client_secret", "refresh_token"]
+    missing = [key for key in required if not config.get(key)]
+    if missing:
+        raise RuntimeError(f"Google Drive OAuth config missing keys: {', '.join(missing)}")
+    credentials = Credentials(
+        token=None,
+        refresh_token=config["refresh_token"],
+        token_uri=config.get("token_uri", "https://oauth2.googleapis.com/token"),
+        client_id=config["client_id"],
+        client_secret=config["client_secret"],
+        scopes=["https://www.googleapis.com/auth/drive"],
+    )
+    return build("drive", "v3", credentials=credentials, cache_discovery=False)
+
+
+def build_configured_drive_service() -> tuple[Any, str]:
+    oauth_raw = os.getenv("GOOGLE_DRIVE_OAUTH_CONFIG")
+    if oauth_raw:
+        try:
+            oauth_config = json.loads(oauth_raw)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("GOOGLE_DRIVE_OAUTH_CONFIG must be valid JSON") from exc
+        print("drive_auth=oauth")
+        account = oauth_config.get("email") or oauth_config.get("sender") or "google user"
+        return build_drive_oauth_service(oauth_config), account
+
+    service_account_info = load_json_env("GOOGLE_SERVICE_ACCOUNT_JSON")
+    print("drive_auth=service_account")
+    return build_drive_service(service_account_info), service_account_info.get("client_email", "unknown service account")
+
+
 def list_visible_drive_folders(service) -> list[dict[str, str]]:
     response = (
         service.files()
@@ -111,11 +146,10 @@ def list_visible_drive_folders(service) -> list[dict[str, str]]:
     return response.get("files", [])
 
 
-def assert_drive_folder_access(service, folder_id: str, service_account_info: dict[str, Any]) -> None:
+def assert_drive_folder_access(service, folder_id: str, drive_account: str) -> None:
     from googleapiclient.errors import HttpError
 
-    service_email = service_account_info.get("client_email", "unknown service account")
-    print(f"drive_service_account={service_email}")
+    print(f"drive_account={drive_account}")
     print(f"drive_folder_id={folder_id}")
     try:
         folder = (
@@ -133,9 +167,9 @@ def assert_drive_folder_access(service, folder_id: str, service_account_info: di
         visible = list_visible_drive_folders(service)
         visible_summary = ", ".join(f"{item.get('name')} ({item.get('id')})" for item in visible) or "none"
         raise RuntimeError(
-            "Google Drive folder is not visible to the service account. "
-            f"Share the target folder with {service_email} as Editor, then rerun. "
-            f"Visible folders for this service account: {visible_summary}"
+            "Google Drive folder is not visible to the configured Drive account. "
+            f"Share the target folder with {drive_account} as Editor, then rerun. "
+            f"Visible folders for this account: {visible_summary}"
         ) from exc
 
     if folder.get("mimeType") != "application/vnd.google-apps.folder":
@@ -143,12 +177,12 @@ def assert_drive_folder_access(service, folder_id: str, service_account_info: di
     print(f"drive_folder_name={folder.get('name')}")
 
 
-def upload_to_drive(output_path: Path, folder_id: str, service_account_info: dict[str, Any]) -> UploadResult:
+def upload_to_drive(output_path: Path, folder_id: str) -> UploadResult:
     from googleapiclient.http import MediaFileUpload
 
-    service = build_drive_service(service_account_info)
+    service, drive_account = build_configured_drive_service()
     folder_id = folder_id.strip()
-    assert_drive_folder_access(service, folder_id, service_account_info)
+    assert_drive_folder_access(service, folder_id, drive_account)
     media = MediaFileUpload(str(output_path), mimetype=EXCEL_MIME_TYPE, resumable=False)
     metadata = {
         "name": output_path.name,
@@ -305,7 +339,6 @@ def run(args: argparse.Namespace) -> int:
         upload_result = upload_to_drive(
             export_result.output_path,
             get_required_env("GOOGLE_DRIVE_FOLDER_ID"),
-            load_json_env("GOOGLE_SERVICE_ACCOUNT_JSON"),
         )
         send_line_message(success_message(export_result, upload_result))
         if args.send_weekly_summary:

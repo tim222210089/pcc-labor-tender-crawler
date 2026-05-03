@@ -27,6 +27,7 @@ jobs:
       run:
         working-directory: Web Crawler
     env:
+      GOOGLE_DRIVE_OAUTH_CONFIG: ${{ secrets.GOOGLE_DRIVE_OAUTH_CONFIG }}
       GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
       GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
       LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
@@ -78,6 +79,7 @@ jobs:
           name: pcc-labor-tenders-output
           path: Web Crawler/*.xlsx
           if-no-files-found: ignore
+
 
 
 

@@ -6,7 +6,8 @@ This folder contains the PCC labor tender crawler and the GitHub Actions automat
 
 Create these repository secrets under `Settings > Secrets and variables > Actions`.
 
-- `GOOGLE_SERVICE_ACCOUNT_JSON`: the full Google service account JSON key.
+- `GOOGLE_DRIVE_OAUTH_CONFIG`: recommended for a personal Google Drive folder. JSON with `client_id`, `client_secret`, and `refresh_token`.
+- `GOOGLE_SERVICE_ACCOUNT_JSON`: fallback service account JSON key. This works only when the account can write to storage, such as a Shared Drive; personal My Drive uploads should use `GOOGLE_DRIVE_OAUTH_CONFIG`.
 - `GOOGLE_DRIVE_FOLDER_ID`: the Drive folder ID where Excel files should be uploaded.
 - `LINE_CHANNEL_ACCESS_TOKEN`: LINE Messaging API channel access token.
 - `LINE_USER_ID`: your LINE user ID. The bot can push only to users who added the official account.
@@ -14,6 +15,21 @@ Create these repository secrets under `Settings > Secrets and variables > Action
 - `GMAIL_CLIENT_OR_SERVICE_CONFIG`: Gmail notification configuration JSON.
 
 ## Gmail Config Options
+
+## Google Drive OAuth Config
+
+Use a personal Google OAuth refresh token for uploads to your own My Drive:
+
+```json
+{
+  "client_id": "YOUR_CLIENT_ID",
+  "client_secret": "YOUR_CLIENT_SECRET",
+  "refresh_token": "YOUR_REFRESH_TOKEN",
+  "email": "your-address@gmail.com"
+}
+```
+
+`GOOGLE_DRIVE_OAUTH_CONFIG` takes priority over `GOOGLE_SERVICE_ACCOUNT_JSON` when both are present.
 
 Use Gmail API OAuth refresh token:
 
