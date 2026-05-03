@@ -96,10 +96,59 @@ def build_drive_service(service_account_info: dict[str, Any]):
     return build("drive", "v3", credentials=credentials, cache_discovery=False)
 
 
+def list_visible_drive_folders(service) -> list[dict[str, str]]:
+    response = (
+        service.files()
+        .list(
+            q="mimeType='application/vnd.google-apps.folder' and trashed=false",
+            fields="files(id,name,owners(displayName,emailAddress))",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+            pageSize=20,
+        )
+        .execute()
+    )
+    return response.get("files", [])
+
+
+def assert_drive_folder_access(service, folder_id: str, service_account_info: dict[str, Any]) -> None:
+    from googleapiclient.errors import HttpError
+
+    service_email = service_account_info.get("client_email", "unknown service account")
+    print(f"drive_service_account={service_email}")
+    print(f"drive_folder_id={folder_id}")
+    try:
+        folder = (
+            service.files()
+            .get(
+                fileId=folder_id,
+                fields="id,name,mimeType,owners(displayName,emailAddress)",
+                supportsAllDrives=True,
+            )
+            .execute()
+        )
+    except HttpError as exc:
+        if exc.resp.status != 404:
+            raise
+        visible = list_visible_drive_folders(service)
+        visible_summary = ", ".join(f"{item.get('name')} ({item.get('id')})" for item in visible) or "none"
+        raise RuntimeError(
+            "Google Drive folder is not visible to the service account. "
+            f"Share the target folder with {service_email} as Editor, then rerun. "
+            f"Visible folders for this service account: {visible_summary}"
+        ) from exc
+
+    if folder.get("mimeType") != "application/vnd.google-apps.folder":
+        raise RuntimeError(f"GOOGLE_DRIVE_FOLDER_ID is not a folder: {folder_id}")
+    print(f"drive_folder_name={folder.get('name')}")
+
+
 def upload_to_drive(output_path: Path, folder_id: str, service_account_info: dict[str, Any]) -> UploadResult:
     from googleapiclient.http import MediaFileUpload
 
     service = build_drive_service(service_account_info)
+    folder_id = folder_id.strip()
+    assert_drive_folder_access(service, folder_id, service_account_info)
     media = MediaFileUpload(str(output_path), mimetype=EXCEL_MIME_TYPE, resumable=False)
     metadata = {
         "name": output_path.name,
