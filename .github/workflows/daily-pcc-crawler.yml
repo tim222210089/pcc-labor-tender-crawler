@@ -12,10 +12,10 @@ on:
           - 'false'
           - 'true'
   schedule:
-    # 08:00 Asia/Taipei every weekday.
-    - cron: '0 0 * * 1-5'
-    # 08:15 Asia/Taipei every Monday, with weekly Gmail summary.
-    - cron: '15 0 * * 1'
+    # 08:07 Asia/Taipei every weekday.
+    - cron: '7 0 * * 1-5'
+    # 08:22 Asia/Taipei every Monday, with weekly Gmail summary.
+    - cron: '22 0 * * 1'
 
 permissions:
   contents: read
@@ -56,7 +56,7 @@ jobs:
         shell: bash
         run: |
           weekly=false
-          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "15 0 * * 1" ]]; then
+          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "22 0 * * 1" ]]; then
             weekly=true
           fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.send_weekly_summary }}" == "true" ]]; then
@@ -79,6 +79,7 @@ jobs:
           name: pcc-labor-tenders-output
           path: Web Crawler/*.xlsx
           if-no-files-found: ignore
+
 
 
 
