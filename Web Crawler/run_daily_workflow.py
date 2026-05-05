@@ -45,6 +45,7 @@ class UploadResult:
     file_id: str
     web_view_link: str
     web_content_link: str
+    created: bool
 
 
 def get_required_env(name: str) -> str:
@@ -177,12 +178,46 @@ def assert_drive_folder_access(service, folder_id: str, drive_account: str) -> N
     print(f"drive_folder_name={folder.get('name')}")
 
 
-def upload_to_drive(output_path: Path, folder_id: str) -> UploadResult:
+def drive_query_literal(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def find_drive_file_by_name(service, folder_id: str, file_name: str) -> dict[str, str] | None:
+    folder = drive_query_literal(folder_id)
+    name = drive_query_literal(file_name)
+    response = (
+        service.files()
+        .list(
+            q=f"name='{name}' and '{folder}' in parents and trashed=false",
+            fields=f"files({DRIVE_FILE_FIELDS})",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+            orderBy="createdTime desc",
+            pageSize=1,
+        )
+        .execute()
+    )
+    files = response.get("files", [])
+    return files[0] if files else None
+
+
+def upload_to_drive(output_path: Path, folder_id: str, skip_if_exists: bool = False) -> UploadResult:
     from googleapiclient.http import MediaFileUpload
 
     service, drive_account = build_configured_drive_service()
     folder_id = folder_id.strip()
     assert_drive_folder_access(service, folder_id, drive_account)
+    if skip_if_exists:
+        existing = find_drive_file_by_name(service, folder_id, output_path.name)
+        if existing:
+            print(f"drive_existing_file_id={existing.get('id')}")
+            return UploadResult(
+                file_id=existing["id"],
+                web_view_link=existing.get("webViewLink", ""),
+                web_content_link=existing.get("webContentLink", ""),
+                created=False,
+            )
+
     media = MediaFileUpload(str(output_path), mimetype=EXCEL_MIME_TYPE, resumable=False)
     metadata = {
         "name": output_path.name,
@@ -206,6 +241,7 @@ def upload_to_drive(output_path: Path, folder_id: str) -> UploadResult:
         file_id=file_id,
         web_view_link=refreshed.get("webViewLink", ""),
         web_content_link=refreshed.get("webContentLink", ""),
+        created=True,
     )
 
 
@@ -339,8 +375,12 @@ def run(args: argparse.Namespace) -> int:
         upload_result = upload_to_drive(
             export_result.output_path,
             get_required_env("GOOGLE_DRIVE_FOLDER_ID"),
+            skip_if_exists=args.skip_if_drive_file_exists,
         )
-        send_line_message(success_message(export_result, upload_result))
+        if upload_result.created:
+            send_line_message(success_message(export_result, upload_result))
+        else:
+            print("line_notification=skipped_existing_drive_file")
         if args.send_weekly_summary:
             send_gmail_notification(
                 f"PCC 勞務標案每週摘要 {export_result.target_date.isoformat()}",
@@ -376,6 +416,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--send-weekly-summary",
         action="store_true",
         help="send Gmail weekly summary after a successful run",
+    )
+    parser.add_argument(
+        "--skip-if-drive-file-exists",
+        action="store_true",
+        help="skip LINE notification when a file with the same name already exists in the target Drive folder",
     )
     return parser
 
