@@ -68,3 +68,12 @@ python export_pcc_labor_tenders.py --date today --output pcc_labor_tenders_today
 ## Manual GitHub Actions Run
 
 After pushing the files and adding secrets, open the `Daily PCC Labor Tender Crawler` workflow in GitHub Actions and run it with `workflow_dispatch`.
+
+## External Scheduler
+
+GitHub Actions native schedules can be delayed. For more reliable morning delivery, use cron-job.org to trigger the existing `workflow_dispatch` endpoint:
+
+- Daily LINE Excel: Monday to Friday `06:45` Asia/Taipei
+- Monday Gmail summary: Monday `07:00` Asia/Taipei
+
+See `CRON_JOB_ORG_SETUP.md` for the GitHub token scope, request URL, headers, JSON bodies, and verification checklist.

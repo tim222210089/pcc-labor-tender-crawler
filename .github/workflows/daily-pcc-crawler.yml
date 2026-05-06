@@ -12,12 +12,10 @@ on:
           - 'false'
           - 'true'
   schedule:
-    # 06:15 and 06:45 Asia/Taipei every weekday.
-    - cron: '15,45 22 * * 0-4'
-    # 07:15 Asia/Taipei every weekday as a backup attempt.
-    - cron: '15 23 * * 0-4'
-    # 06:30 Asia/Taipei every Monday, with weekly Gmail summary.
-    - cron: '30 22 * * 0'
+    # 06:45 Asia/Taipei every weekday. Fallback until external cron-job.org trigger is verified.
+    - cron: '45 22 * * 0-4'
+    # 07:00 Asia/Taipei every Monday, with weekly Gmail summary. Fallback until external cron-job.org trigger is verified.
+    - cron: '0 23 * * 0'
 
 permissions:
   contents: read
@@ -58,7 +56,7 @@ jobs:
         shell: bash
         run: |
           weekly=false
-          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "30 22 * * 0" ]]; then
+          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "0 23 * * 0" ]]; then
             weekly=true
           fi
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.send_weekly_summary }}" == "true" ]]; then
