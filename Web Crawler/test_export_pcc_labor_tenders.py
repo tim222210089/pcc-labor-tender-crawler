@@ -1,4 +1,5 @@
 ﻿import unittest
+from datetime import date, datetime, timezone
 
 from export_pcc_labor_tenders import (
     AwardRecord,
@@ -10,6 +11,7 @@ from export_pcc_labor_tenders import (
     parse_award_rows,
     parse_next_page_links,
     parse_tender_rows,
+    resolve_target_date,
     slash_date_string,
 )
 
@@ -80,9 +82,15 @@ class ExportPccLaborTendersTests(unittest.TestCase):
         self.assertEqual(normalize_space(" 委託 \n 設計\t監造 "), "委託 設計 監造")
 
     def test_slash_date_string(self) -> None:
-        from datetime import date
-
         self.assertEqual(slash_date_string(date(2026, 4, 30)), "2026/04/30")
+
+    def test_resolve_target_date_uses_taipei_date_for_today(self) -> None:
+        now = datetime(2026, 5, 6, 22, 45, tzinfo=timezone.utc)
+        self.assertEqual(resolve_target_date(None, now), date(2026, 5, 7))
+
+    def test_resolve_target_date_keeps_explicit_date(self) -> None:
+        now = datetime(2026, 5, 6, 22, 45, tzinfo=timezone.utc)
+        self.assertEqual(resolve_target_date(date(2026, 5, 1), now), date(2026, 5, 1))
 
     def test_extract_title_from_script(self) -> None:
         from bs4 import BeautifulSoup

@@ -10,6 +10,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
+from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup
@@ -51,6 +52,7 @@ TENDER_HEADERS = ["機關名稱", "標案名稱", "公告日期", "截止投標"
 AWARD_HEADERS = ["機關名稱", "標案名稱", "公告日期", "決標金額", "決標公告", "無法決標"]
 DEFAULT_KEYWORDS = ["委託", "設計", "監造", "技術服務"]
 SUPPORT_ONLY_KEYWORD = "委託"
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 TITLE_RE = re.compile(r'pageCode2Img\("(?P<title>.*?)"\)')
 PAGE_LINK_RE = re.compile(r'href="(?P<href>\?[^"]*d-\d+-p=\d+[^"]*)"')
 PAGE_PARAM_RE = re.compile(r"[?&](?P<name>d-\d+-p)=(?P<page>\d+)")
@@ -111,8 +113,13 @@ def parse_cli_date(raw: str) -> tuple[str, date | None]:
     return raw, parsed
 
 
-def resolve_target_date(explicit_date: date | None) -> date:
-    return explicit_date or date.today()
+def resolve_target_date(explicit_date: date | None, now: datetime | None = None) -> date:
+    if explicit_date is not None:
+        return explicit_date
+    current = now or datetime.now(TAIPEI_TZ)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=TAIPEI_TZ)
+    return current.astimezone(TAIPEI_TZ).date()
 
 
 def fetch_with_retries(
@@ -429,7 +436,7 @@ def main() -> int:
     keywords = parse_keywords(args.keywords)
     target_date = resolve_target_date(explicit_date)
 
-    records = fetch_all_records(explicit_date)
+    records = fetch_all_records(target_date)
     labor_records = filter_labor_records(records)
     keyword_records = filter_keyword_matches(labor_records, keywords)
     awarded_rows = fetch_award_records(target_date, "TENDER_STATUS_1")
