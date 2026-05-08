@@ -436,7 +436,7 @@ def main() -> int:
     keywords = parse_keywords(args.keywords)
     target_date = resolve_target_date(explicit_date)
 
-    records = fetch_all_records(target_date)
+    records = fetch_all_records(explicit_date)
     labor_records = filter_labor_records(records)
     keyword_records = filter_keyword_matches(labor_records, keywords)
     awarded_rows = fetch_award_records(target_date, "TENDER_STATUS_1")
