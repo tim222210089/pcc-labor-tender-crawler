@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "date": "2026-05-03",
+      "broker": "美系外資",
+      "rating": "買進",
+      "target_price": 5000,
+      "previous_target_price": 2454,
+      "source": "Yahoo 股市 / 財訊快報",
+      "url": "https://tw.stock.yahoo.com/news/%E8%81%AF%E7%99%BC%E7%A7%91%E6%B3%95%E8%AA%AA%E6%9C%83%E5%BE%8C%E5%A4%96%E8%B3%87%E9%BD%8A%E8%AA%BF%E9%AB%98%E7%9B%AE%E6%A8%99%E5%83%B9-%E7%BE%8E%E7%B3%BB%E5%96%8A5000%E5%85%83-%E6%97%A5%E7%B3%BB%E9%99%8D%E8%A9%95%E8%87%B3%E4%B8%AD%E7%AB%8B-031643158.html",
+      "summary": "看好 AI ASIC 上升週期與 2027-2028 年營運利益率提升，重申買進並將目標價上調至 5000 元。"
+    },
+    {
+      "date": "2026-05-03",
+      "broker": "亞系外資",
+      "rating": "優於大盤",
+      "target_price": 4500,
+      "previous_target_price": 2454,
+      "source": "Yahoo 股市 / 財訊快報",
+      "url": "https://tw.stock.yahoo.com/news/%E8%81%AF%E7%99%BC%E7%A7%91%E6%B3%95%E8%AA%AA%E6%9C%83%E5%BE%8C%E5%A4%96%E8%B3%87%E9%BD%8A%E8%AA%BF%E9%AB%98%E7%9B%AE%E6%A8%99%E5%83%B9-%E7%BE%8E%E7%B3%BB%E5%96%8A5000%E5%85%83-%E6%97%A5%E7%B3%BB%E9%99%8D%E8%A9%95%E8%87%B3%E4%B8%AD%E7%AB%8B-031643158.html",
+      "summary": "認為 AI ASIC 成長動能剛起步，市場尚未完全反映長線潛力。"
+    },
+    {
+      "date": "2026-05-03",
+      "broker": "歐系外資",
+      "rating": "買進",
+      "target_price": 3700,
+      "previous_target_price": 3400,
+      "source": "Yahoo 股市 / 財訊快報",
+      "url": "https://tw.stock.yahoo.com/news/%E8%81%AF%E7%99%BC%E7%A7%91%E6%B3%95%E8%AA%AA%E6%9C%83%E5%BE%8C%E5%A4%96%E8%B3%87%E9%BD%8A%E8%AA%BF%E9%AB%98%E7%9B%AE%E6%A8%99%E5%83%B9-%E7%BE%8E%E7%B3%BB%E5%96%8A5000%E5%85%83-%E6%97%A5%E7%B3%BB%E9%99%8D%E8%A9%95%E8%87%B3%E4%B8%AD%E7%AB%8B-031643158.html",
+      "summary": "看好 TPU 銷售與執行力，重申買進並上修目標價。"
+    },
+    {
+      "date": "2026-05-03",
+      "broker": "日系外資",
+      "rating": "中立",
+      "target_price": 2454,
+      "previous_target_price": 2000,
+      "source": "Yahoo 股市 / 財訊快報",
+      "url": "https://tw.stock.yahoo.com/news/%E8%81%AF%E7%99%BC%E7%A7%91%E6%B3%95%E8%AA%AA%E6%9C%83%E5%BE%8C%E5%A4%96%E8%B3%87%E9%BD%8A%E8%AA%BF%E9%AB%98%E7%9B%AE%E6%A8%99%E5%83%B9-%E7%BE%8E%E7%B3%BB%E5%96%8A5000%E5%85%83-%E6%97%A5%E7%B3%BB%E9%99%8D%E8%A9%95%E8%87%B3%E4%B8%AD%E7%AB%8B-031643158.html",
+      "summary": "認為 Q1 優於預期，但 Q2 呈現 AI 強、手機弱，股價短線漲多後對利空較敏感，因此降評至中立。"
+    }
+  ]
+}

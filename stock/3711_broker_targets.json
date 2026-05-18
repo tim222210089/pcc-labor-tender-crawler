@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "date": "2026-05-01",
+      "broker": "本土法人",
+      "rating": "中立",
+      "target_price": 520,
+      "source": "FTNN",
+      "url": "https://www.ftnn.com.tw/news/542199",
+      "summary": "法人將目標價上調至 520 元，但因股價漲幅已反映部分成長，投資評等由買進降至中立。"
+    },
+    {
+      "date": "2026-04-30",
+      "broker": "本土投顧",
+      "rating": "買進",
+      "target_price": 640,
+      "source": "FTNN",
+      "url": "https://www.ftnn.com.tw/news/542185",
+      "summary": "看好 AI 先進封測需求與 LEAP 產能擴張，維持買進評等，目標價 640 元。"
+    },
+    {
+      "date": "2026-04-30",
+      "broker": "FactSet 共識",
+      "rating": "市場共識",
+      "target_price": 472,
+      "source": "鉅亨網",
+      "url": "https://news.cnyes.com/news/id/6438089",
+      "summary": "FactSet 調查 21 位分析師，2026 年 EPS 中位數上修至 15.71 元，預估目標價 472 元。"
+    }
+  ],
+  "consensus": {
+    "average_target": 544,
+    "highest_target": 640,
+    "lowest_target": 472
+  }
+}

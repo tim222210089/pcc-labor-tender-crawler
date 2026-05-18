@@ -1,0 +1,37 @@
+{
+  "items": [
+    {
+      "date": "2026-05-04",
+      "broker": "日系外資",
+      "rating": "買進",
+      "target_price": 2440,
+      "source": "FTNN",
+      "url": "https://www.ftnn.com.tw/news/542960",
+      "summary": "日系外資看好 AI 電力、散熱需求與 800VDC 業務進展，重申買進評等並給予 2440 元目標價。"
+    },
+    {
+      "date": "2026-04-22",
+      "broker": "FactSet 共識",
+      "rating": "市場共識",
+      "target_price": 1960,
+      "source": "鉅亨網",
+      "url": "https://news.cnyes.com/news/id/6429625",
+      "summary": "FactSet 調查 23 位分析師，2026 年 EPS 中位數上修至 37.12 元，預估目標價 1960 元。"
+    },
+    {
+      "date": "2026-04-21",
+      "broker": "日系外資",
+      "rating": "買進",
+      "target_price": 2440,
+      "previous_target_price": 1660,
+      "source": "東森財經/財訊快報",
+      "url": "https://fnc.ebc.net.tw/fncnews/stock/209493",
+      "summary": "日系外資認為台達電在散熱與高功率電源具領先優勢，將目標價由 1660 元大幅調高至 2440 元。"
+    }
+  ],
+  "consensus": {
+    "average_target": 2280,
+    "highest_target": 2440,
+    "lowest_target": 1960
+  }
+}

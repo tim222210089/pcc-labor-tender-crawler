@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>台達電(2308) 投資顧問報告 0424版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--accent:#f59e0b;--accent2:#22d3ee;--accent3:#a78bfa;--green:#22c55e;--red:#ef4444;--text:#f1f5f9;--muted:#94a3b8;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
+.header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 50%,#1a1035 100%);border-bottom:2px solid var(--accent);padding:20px 32px;position:relative;overflow:hidden;}
+.header::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(245,158,11,.12),transparent 70%);border-radius:50%;}
+.badge{display:inline-block;background:linear-gradient(90deg,var(--accent),#f97316);color:#000;font-weight:800;font-size:11px;padding:3px 10px;border-radius:20px;letter-spacing:1px;margin-bottom:8px;}
+.header h1{font-size:26px;font-weight:800;margin-bottom:4px;}
+.header h1 span{color:var(--accent);}
+.header-sub{color:var(--muted);font-size:12px;}
+.alert-box{display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:#fca5a5;}
+.alert-box.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);color:#86efac;}
+.price-banner{display:flex;gap:20px;flex-wrap:wrap;padding:14px 32px;background:var(--bg2);border-bottom:1px solid var(--bg3);}
+.price-item{display:flex;flex-direction:column;gap:2px;}
+.price-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.price-val{font-size:20px;font-weight:800;}
+.rating{font-size:34px;font-weight:900;background:linear-gradient(135deg,#f59e0b,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.tabs{display:flex;padding:0 32px;background:var(--bg2);border-bottom:2px solid var(--bg3);overflow-x:auto;}
+.tab{padding:12px 18px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;color:var(--muted);transition:all .2s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab:hover:not(.active){color:var(--text);}
+.content{padding:22px 32px;max-width:1400px;}
+.panel{display:none;}.panel.active{display:block;}
+.section-title{font-size:17px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.section-title::before{content:'';display:block;width:4px;height:20px;background:var(--accent);border-radius:2px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+.card{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:16px;}
+.card.hl{border-color:var(--accent);}.card.green{border-color:var(--green);}.card.red{border-color:var(--red);}.card.cyan{border-color:var(--accent2);}.card.purple{border-color:var(--accent3);}
+.card-title{font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;}
+.card-val{font-size:24px;font-weight:800;}
+.chart-wrap{background:var(--bg2);border:1px solid var(--bg3);border-radius:12px;padding:18px;margin-bottom:18px;}
+.chart-wrap h3{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:14px;}
+canvas{max-height:300px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--bg3);color:var(--muted);padding:9px 10px;text-align:center;font-weight:600;}
+td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--bg3);}
+tr:hover td{background:rgba(255,255,255,.03);}
+/* support cards */
+.sc{background:var(--bg2);border-radius:12px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;}
+.sc1::before{background:linear-gradient(180deg,#ef4444,#f97316);}.sc2::before{background:linear-gradient(180deg,#f59e0b,#eab308);}.sc3::before{background:linear-gradient(180deg,#22c55e,#16a34a);}.sc4::before{background:linear-gradient(180deg,#22d3ee,#0ea5e9);}.sc5::before{background:linear-gradient(180deg,#a78bfa,#7c3aed);}
+.sc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.sc-lbl{font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:4px;display:inline-block;}
+.sc1 .sc-lbl{background:rgba(239,68,68,.2);color:#ef4444;}.sc2 .sc-lbl{background:rgba(245,158,11,.2);color:#f59e0b;}.sc3 .sc-lbl{background:rgba(34,197,94,.2);color:#22c55e;}.sc4 .sc-lbl{background:rgba(34,211,238,.2);color:#22d3ee;}.sc5 .sc-lbl{background:rgba(167,139,250,.2);color:#a78bfa;}
+.sc-price{font-size:22px;font-weight:800;}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;margin:2px;background:var(--bg3);color:var(--muted);}
+.tag.ok{background:rgba(34,197,94,.15);color:#22c55e;}
+.tag.warn{background:rgba(245,158,11,.15);color:#f59e0b;}
+/* strategy */
+.strat{background:var(--bg2);border-radius:12px;padding:18px;margin-bottom:14px;}
+.strat-hdr{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.snum{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;flex-shrink:0;}
+.sn1{background:linear-gradient(135deg,#f59e0b,#f97316);color:#000;}.sn2{background:linear-gradient(135deg,#22d3ee,#0ea5e9);color:#000;}.sn3{background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;}
+.btable{width:100%;border-collapse:collapse;font-size:12px;}
+.btable th{background:rgba(255,255,255,.05);padding:7px;text-align:center;font-weight:600;color:var(--muted);}
+.btable td{padding:7px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06);}
+.bdg{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;}
+.bdg-g{background:rgba(34,197,94,.2);color:#22c55e;}.bdg-r{background:rgba(239,68,68,.2);color:#ef4444;}.bdg-y{background:rgba(245,158,11,.2);color:#f59e0b;}
+.flow{display:flex;flex-wrap:wrap;gap:0;margin-bottom:18px;}
+.fbox{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:9px 12px;font-size:12px;text-align:center;min-width:90px;}
+.farrow{color:var(--accent);font-size:18px;padding:0 4px;display:flex;align-items:center;}
+.risk-row{display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg2);border-radius:10px;margin-bottom:10px;}
+.risk-icon{font-size:22px;}.risk-info{flex:1;}.risk-title{font-weight:700;margin-bottom:3px;}.risk-desc{font-size:12px;color:var(--muted);}
+.risk-price{font-size:17px;font-weight:800;color:var(--red);}
+.notice{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:11px 15px;font-size:12px;color:#fbbf24;margin-bottom:14px;}
+.warn-box{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px;margin-bottom:14px;}
+.ok-box{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:14px;margin-bottom:14px;}
+.milestone-box{background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(249,115,22,.08));border:2px solid var(--accent);border-radius:12px;padding:18px;margin-bottom:18px;text-align:center;}
+.milestone-box h2{font-size:28px;font-weight:900;color:var(--accent);margin-bottom:6px;}
+.event-timeline{position:relative;padding-left:20px;}
+.event-timeline::before{content:'';position:absolute;left:6px;top:0;bottom:0;width:2px;background:var(--bg3);}
+.event{position:relative;margin-bottom:14px;padding-left:20px;}
+.event::before{content:'';position:absolute;left:-14px;top:5px;width:10px;height:10px;border-radius:50%;border:2px solid var(--accent);background:var(--bg);}
+.event.sell::before{border-color:var(--red);}.event.buy::before{border-color:var(--green);}.event.key::before{background:var(--accent);}
+.event-date{font-size:12px;color:var(--muted);margin-bottom:2px;}
+.event-title{font-weight:700;font-size:14px;}
+.event-desc{font-size:12px;color:var(--muted);margin-top:3px;}
+@media(max-width:768px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr;}.content,.price-banner,.tabs{padding-left:16px;padding-right:16px;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">⭐ 投資顧問分析報告 · 0424版</div>
+  <h1>台達電 <span>(2308)</span> · $2,000守穩 · 震盪整固中</h1>
+  <div class="header-sub">資料截至 2026-04-24 · AI Investment Advisor · 評級：A</div>
+  <div class="alert-box">⚡ 4/23 出現外資大賣 -452萬 + 長上影線 · 需關注短線整固風險</div>
+  &nbsp;&nbsp;
+  <div class="alert-box ok">✅ 4/24 $2,000守穩反彈 · 外資回買 +53萬 · DIF再創新高 162.38</div>
+</div>
+
+<div class="price-banner">
+  <div class="price-item"><span class="price-label">最新收盤 (4/24)</span><span class="price-val" style="color:var(--accent)">$2,075</span></div>
+  <div class="price-item"><span class="price-label">今日區間</span><span class="price-val" style="color:var(--text)">$1,990 ~ $2,090</span></div>
+  <div class="price-item"><span class="price-label">漲跌 vs前日</span><span class="price-val" style="color:var(--green)">+$95 (+4.8%)</span></div>
+  <div class="price-item"><span class="price-label">DIF / Hist</span><span class="price-val" style="color:var(--accent2)">162.38 / 29.27</span></div>
+  <div class="price-item"><span class="price-label">KD</span><span class="price-val" style="color:var(--accent3)">84.7 / 85.9</span></div>
+  <div class="price-item"><span class="price-label">EMA12 / EMA26</span><span class="price-val" style="color:var(--muted);font-size:16px">1870 / 1708</span></div>
+  <div class="price-item"><span class="price-label">融資餘額</span><span class="price-val" style="color:var(--green)">5,172張</span></div>
+  <div class="price-item"><span class="price-label">5日外資</span><span class="price-val" style="color:var(--red)">-593萬</span></div>
+  <div class="price-item"><span class="price-label">評級</span><div class="rating">A</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="sw(0)">📊 日線技術分析</div>
+  <div class="tab" onclick="sw(1)">⚡ 近三日關鍵事件</div>
+  <div class="tab" onclick="sw(2)">🎯 支撐位詳解</div>
+  <div class="tab" onclick="sw(3)">📈 加碼操作策略</div>
+  <div class="tab" onclick="sw(4)">📅 週線深度分析</div>
+  <div class="tab" onclick="sw(5)">⚠️ 風險與停損</div>
+</div>
+
+<div class="content">
+
+<!-- TAB 0 日線 -->
+<div class="panel active" id="p0">
+  <div class="grid4">
+    <div class="card hl"><div class="card-title">收盤 / 最高</div><div class="card-val" style="color:var(--accent)">$2,075</div><div style="color:var(--green);font-size:12px;margin-top:4px">盤中 $2,090</div></div>
+    <div class="card green"><div class="card-title">DIF（動能）</div><div class="card-val" style="color:var(--green)">162.38</div><div style="color:var(--muted);font-size:12px;margin-top:4px">再創歷史新高</div></div>
+    <div class="card cyan"><div class="card-title">MACD Hist</div><div class="card-val" style="color:var(--accent2)">29.27</div><div style="color:var(--muted);font-size:12px;margin-top:4px">4/23縮量後回升</div></div>
+    <div class="card"><div class="card-title">EMA12 / 26</div><div class="card-val" style="color:var(--accent3);font-size:18px">1870 / 1708</div><div style="color:var(--green);font-size:12px;margin-top:4px">多頭排列維持</div></div>
+  </div>
+
+  <div class="chart-wrap">
+    <h3>📈 收盤價走勢 + EMA12/26（90日）</h3>
+    <canvas id="priceChart"></canvas>
+  </div>
+  <div class="grid2">
+    <div class="chart-wrap" style="margin:0"><h3>📊 MACD（DIF / Signal / Histogram）</h3><canvas id="macdChart"></canvas></div>
+    <div class="chart-wrap" style="margin:0"><h3>📉 KD 指標</h3><canvas id="kdChart"></canvas></div>
+  </div>
+  <div class="chart-wrap" style="margin-top:16px">
+    <h3>💰 外資累計買賣超 + 融資餘額（雙軸）</h3>
+    <canvas id="foreignChart"></canvas>
+  </div>
+
+  <div class="section-title" style="margin-top:20px">📋 綜合技術評分</div>
+  <table>
+    <tr><th>指標</th><th>當前數值</th><th>訊號</th><th>評分</th><th>說明</th></tr>
+    <tr><td>DIF動能</td><td style="color:var(--green)">162.38</td><td><span class="bdg bdg-g">歷史新高</span></td><td>★★★★★</td><td>趨勢動能持續擴張，多方主導</td></tr>
+    <tr><td>MACD Hist</td><td style="color:var(--accent2)">29.27</td><td><span class="bdg bdg-y">輕微縮量</span></td><td>★★★★☆</td><td>4/23縮至28.71後回升29.27，需觀察</td></tr>
+    <tr><td>KD值</td><td>84.7 / 85.9</td><td><span class="bdg bdg-y">高位整固</span></td><td>★★★★☆</td><td>KD輕微回落，非死叉，屬正常整固</td></tr>
+    <tr><td>EMA多頭排列</td><td>收 &gt; EMA12 &gt; EMA26</td><td><span class="bdg bdg-g">完美多排</span></td><td>★★★★★</td><td>三線多頭排列牢固，趨勢未破壞</td></tr>
+    <tr><td>外資動向</td><td style="color:var(--red)">5日累計 -593萬</td><td><span class="bdg bdg-r">近期獲利了結</span></td><td>★★★☆☆</td><td>4/22~4/23大賣，4/24回買，需持續觀察</td></tr>
+    <tr><td>融資餘額</td><td>5,172張</td><td><span class="bdg bdg-y">微幅回升</span></td><td>★★★★☆</td><td>由4,804升至5,172，仍在低位，風險可控</td></tr>
+    <tr><td>$2,000支撐</td><td>最低$1,990</td><td><span class="bdg bdg-g">守住確認</span></td><td>★★★★★</td><td>4/24觸及$1,990後強勢反彈至$2,075</td></tr>
+    <tr><td style="font-weight:700">綜合評級</td><td colspan="4" style="font-weight:800;color:var(--accent);font-size:15px">A · 震盪整固，$2,000守穩，趨勢仍多</td></tr>
+  </table>
+</div>
+
+<!-- TAB 1 近三日事件 -->
+<div class="panel" id="p1">
+  <div class="section-title">⚡ 4/22 ~ 4/24 關鍵三日事件分析</div>
+
+  <div class="event-timeline">
+    <div class="event sell">
+      <div class="event-date">2026-04-22 (三)</div>
+      <div class="event-title" style="color:#fca5a5">🔴 外資首次獲利了結 · 收 $2,015</div>
+      <div class="event-desc">
+        開盤$2,040衝至$2,045後轉弱，收$2,015；外資 <b style="color:#ef4444">-239萬張</b>，為突破$2,000後首次明顯賣超。
+        KD=90.35/88.56 高位，MACD hist小幅增至33.26（仍在擴張）。
+        整體為獲利了結初期，非趨勢轉折。
+      </div>
+    </div>
+    <div class="event sell key">
+      <div class="event-date">2026-04-23 (四) ⚠️ 最關鍵日</div>
+      <div class="event-title" style="color:#fca5a5">🔴 外資大賣 -452萬 · 長上影線 · MACD hist縮量</div>
+      <div class="event-desc">
+        <b>開高衝至$2,115（新高）後急殺，最低跌至$1,935，收$1,980</b>——長上影線為空頭反撲訊號。<br>
+        外資大賣 <b style="color:#ef4444">-452萬張</b>（近日最大單日賣超），MACD hist由33.26縮至28.71（首次明顯縮量）。
+        KD：K由90.35降至82.45，出現回落但未死叉。<br>
+        <b style="color:#fbbf24">⚠️ 此日為關鍵警示：高位長上影線 + 外資大賣，需觀察能否守穩$2,000</b>
+      </div>
+    </div>
+    <div class="event buy key">
+      <div class="event-date">2026-04-24 (五)</div>
+      <div class="event-title" style="color:#86efac">✅ $2,000守穩 · 外資回買 · DIF再創新高</div>
+      <div class="event-desc">
+        開盤$2,005，最低$1,990（守住$2,000）後強勢反彈，收$2,075。<br>
+        外資回買 <b style="color:#22c55e">+53萬張</b>，由賣轉買確認支撐有效。<br>
+        DIF=162.38 <b style="color:#22c55e">再創歷史新高</b>，MACD hist微升至29.27。<br>
+        <b style="color:#86efac">✅ 結論：$2,000整數關卡支撐確立，外資回買確認多方仍主導</b>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title" style="margin-top:20px">📊 近三日數據對比表</div>
+  <table>
+    <tr><th>日期</th><th>開盤</th><th>最高</th><th>最低</th><th>收盤</th><th>外資(萬)</th><th>MACD Hist</th><th>DIF</th><th>KD</th><th>關鍵訊號</th></tr>
+    <tr><td>4/22</td><td>$2,040</td><td style="color:var(--green)">$2,045</td><td style="color:var(--red)">$1,995</td><td>$2,015</td><td style="color:var(--red)">-239</td><td>33.26</td><td>151.88</td><td>90.4/88.6</td><td><span class="bdg bdg-y">獲利了結初期</span></td></tr>
+    <tr><td style="color:#fbbf24;font-weight:700">4/23⚠️</td><td>$2,100</td><td style="color:var(--green)">$2,115</td><td style="color:var(--red)">$1,935</td><td style="color:var(--red);font-weight:700">$1,980</td><td style="color:var(--red);font-weight:700">-452</td><td style="color:var(--red)">28.71↓</td><td>154.50</td><td>82.5/86.5</td><td><span class="bdg bdg-r">⚠️長上影+大賣</span></td></tr>
+    <tr><td style="color:var(--green);font-weight:700">4/24✅</td><td>$2,005</td><td style="color:var(--green)">$2,090</td><td style="color:var(--red)">$1,990</td><td style="color:var(--green);font-weight:700">$2,075</td><td style="color:var(--green);font-weight:700">+53</td><td style="color:var(--green)">29.27↑</td><td style="color:var(--green);font-weight:700">162.38↑</td><td>84.7/85.9</td><td><span class="bdg bdg-g">✅守穩反彈</span></td></tr>
+  </table>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="warn-box">
+      <div style="font-weight:700;color:#fca5a5;margin-bottom:8px">⚠️ 短線需持續關注</div>
+      <ul style="font-size:13px;line-height:2;color:var(--muted)">
+        <li>MACD hist從33.26縮至28.71，雖4/24微升，但縮量趨勢需觀察</li>
+        <li>4/23長上影線代表$2,115附近有明顯賣壓，短線需再確認突破</li>
+        <li>KD高位回落，若持續下行需留意交叉賣訊</li>
+        <li>融資由4,804升至5,172，散戶開始加槓桿，需注意</li>
+      </ul>
+    </div>
+    <div class="ok-box">
+      <div style="font-weight:700;color:#86efac;margin-bottom:8px">✅ 仍然維持多方的理由</div>
+      <ul style="font-size:13px;line-height:2;color:var(--muted)">
+        <li>DIF=162.38 繼續創歷史新高，主趨勢動能未斷</li>
+        <li>$2,000整數關卡（最低$1,990）守穩，關鍵支撐確認</li>
+        <li>EMA12=1,870 / EMA26=1,708，多頭排列距離收盤仍有大幅緩衝</li>
+        <li>外資4/24回買+53萬，賣壓為短暫獲利了結非趨勢翻空</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2 支撐位 -->
+<div class="panel" id="p2">
+  <div class="notice">📌 四重確認法：每個支撐需符合 ①Fib回撤位 ②前期成交密集區 ③均線動態支撐 ④法人歷史進場記錄，2項以上重疊為有效支撐</div>
+  <div class="section-title">🎯 五層支撐架構（以$2,115高點計算）</div>
+
+  <div class="sc sc1">
+    <div class="sc-header">
+      <div><span class="sc-lbl">S1 第一支撐 · 最強</span><div class="sc-price" style="color:#ef4444">$1,990 ～ $2,050</div></div>
+      <div>⭐⭐⭐⭐⭐</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">$2,000整數關卡（4/24最低$1,990實測守穩），$2,050為4/22-4/24成交密集區，Fib 23.6%(1938)在此區間內</div>
+    <div><span class="tag ok">✓ $2,000整數關卡4/24實測</span><span class="tag ok">✓ 4/24外資回買確認</span><span class="tag ok">✓ Fib 23.6% 1938</span><span class="tag ok">✓ 近期成交密集</span></div>
+  </div>
+
+  <div class="sc sc2">
+    <div class="sc-header">
+      <div><span class="sc-lbl">S2 第二支撐 · 強</span><div class="sc-price" style="color:#f59e0b">$1,900 ～ $1,940</div></div>
+      <div>⭐⭐⭐⭐⭐</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">4/23最低$1,935（接近此區）、4/20收盤$1,900，Fib 38.2%(1828)落點精確，週線支撐</div>
+    <div><span class="tag ok">✓ Fib 38.2% 1828</span><span class="tag ok">✓ 4/23最低1935附近</span><span class="tag ok">✓ 週線支撐</span><span class="tag warn">⚠ 需觀察外資</span></div>
+  </div>
+
+  <div class="sc sc3">
+    <div class="sc-header">
+      <div><span class="sc-lbl">S3 第三支撐 · 中強</span><div class="sc-price" style="color:#22c55e">$1,835 ～ $1,870</div></div>
+      <div>⭐⭐⭐⭐</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">4/17歷史前高$1,870（前高轉支），EMA12動態支撐約$1,870，4/16成交密集</div>
+    <div><span class="tag ok">✓ 前歷史高點轉支撐</span><span class="tag ok">✓ EMA12動態1870</span><span class="tag ok">✓ Fib 50% 1740</span><span class="tag warn">停損參考位</span></div>
+  </div>
+
+  <div class="sc sc4">
+    <div class="sc-header">
+      <div><span class="sc-lbl">S4 第四支撐 · 重要</span><div class="sc-price" style="color:#22d3ee">$1,750 ～ $1,790</div></div>
+      <div>⭐⭐⭐⭐</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">Fib 61.8%(1652)精確落點，4/14-4/15成交密集區，外資曾大幅買超</div>
+    <div><span class="tag ok">✓ Fib 61.8% 1652</span><span class="tag ok">✓ 4/14-4/15成交密集</span><span class="tag ok">✓ 外資進場記錄</span></div>
+  </div>
+
+  <div class="sc sc5">
+    <div class="sc-header">
+      <div><span class="sc-lbl">S5 最後防線</span><div class="sc-price" style="color:#a78bfa">$1,665 ～ $1,705</div></div>
+      <div>⭐⭐⭐</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-bottom:8px">EMA26動態支撐（約$1,708），V形反彈起漲平台，跌破則趨勢轉弱訊號</div>
+    <div><span class="tag ok">✓ EMA26動態 1708</span><span class="tag ok">✓ V形起漲平台</span><span class="tag warn">跌破趨勢轉弱</span></div>
+  </div>
+
+  <div class="section-title" style="margin-top:20px">📐 費波那契雙框架（以$2,115高點更新）</div>
+  <div class="grid2">
+    <div>
+      <div style="font-weight:700;margin-bottom:10px;color:var(--accent)">框架A：V形反彈（$1,365 → $2,115）</div>
+      <table>
+        <tr><th>Fib%</th><th>支撐價位</th><th>強度</th><th>說明</th></tr>
+        <tr><td>23.6%</td><td style="color:var(--red);font-weight:700">$1938</td><td>⭐⭐⭐⭐⭐</td><td>$2,000關卡確認</td></tr>
+        <tr><td>38.2%</td><td style="color:var(--accent);font-weight:700">$1828</td><td>⭐⭐⭐⭐⭐</td><td>4/23最低附近</td></tr>
+        <tr><td>50.0%</td><td style="color:var(--green);font-weight:700">$1740</td><td>⭐⭐⭐⭐</td><td>EMA12支撐</td></tr>
+        <tr><td>61.8%</td><td style="color:var(--accent2);font-weight:700">$1652</td><td>⭐⭐⭐</td><td>4/14-4/15密集</td></tr>
+      </table>
+    </div>
+    <div>
+      <div style="font-weight:700;margin-bottom:10px;color:var(--accent2)">框架B：整體升浪（$932 → $2,115）</div>
+      <table>
+        <tr><th>Fib%</th><th>支撐價位</th><th>強度</th><th>說明</th></tr>
+        <tr><td>23.6%</td><td style="color:var(--red);font-weight:700">$1836</td><td>⭐⭐⭐⭐⭐</td><td>強力長期支撐</td></tr>
+        <tr><td>38.2%</td><td style="color:var(--accent);font-weight:700">$1663</td><td>⭐⭐⭐⭐</td><td>中線回調底部</td></tr>
+        <tr><td>50.0%</td><td style="color:var(--green);font-weight:700">$1524</td><td>⭐⭐⭐</td><td>長線低接參考</td></tr>
+        <tr><td>61.8%</td><td style="color:var(--accent2);font-weight:700">$1384</td><td>⭐⭐</td><td>深度回撤底部</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3 策略 -->
+<div class="panel" id="p3">
+  <div class="notice">⚠️ 本報告為技術分析教育用途，不構成投資建議。操作前請評估自身風險承受能力。</div>
+
+  <div class="section-title">🔥 進場五步驟確認流程</div>
+  <div class="flow">
+    <div style="display:flex;align-items:center"><div class="fbox">①<br>價位確認<br>碰支撐</div><div class="farrow">→</div></div>
+    <div style="display:flex;align-items:center"><div class="fbox">②<br>量能確認<br>縮量止跌</div><div class="farrow">→</div></div>
+    <div style="display:flex;align-items:center"><div class="fbox">③<br>K線確認<br>收紅/下影線</div><div class="farrow">→</div></div>
+    <div style="display:flex;align-items:center"><div class="fbox">④<br>外資確認<br>轉買或持平</div><div class="farrow">→</div></div>
+    <div style="display:flex;align-items:center"><div class="fbox">⑤<br>執行進場<br>設定停損</div></div>
+  </div>
+
+  <div class="strat">
+    <div class="strat-hdr">
+      <div class="snum sn1">1</div>
+      <div><div style="font-weight:800;font-size:15px">策略一：現有持股者 ── 移動停利護航</div><div style="color:var(--muted);font-size:13px">核心：在$2,000-2,075已有倉位，逐步鎖利讓利潤奔跑</div></div>
+    </div>
+    <table class="btable">
+      <tr><th>批次</th><th>出場條件</th><th>目標價位</th><th>出場比例</th><th>備註</th></tr>
+      <tr><td><span class="bdg bdg-y">第1批</span></td><td>觸及$2,200 或 跌破$1,980</td><td>$2,200</td><td>20%</td><td>先鎖部分獲利</td></tr>
+      <tr><td><span class="bdg bdg-y">第2批</span></td><td>觸及$2,400 或 跌破S2 $1,900</td><td>$2,400</td><td>25%</td><td>波段目標1</td></tr>
+      <tr><td><span class="bdg bdg-y">第3批</span></td><td>觸及$2,600 或 跌破S3 $1,850</td><td>$2,600</td><td>25%</td><td>波段目標2</td></tr>
+      <tr><td><span class="bdg bdg-y">第4批</span></td><td>移動停利：前高回撤8%執行</td><td>追蹤停利</td><td>30%</td><td>讓獲利奔跑</td></tr>
+    </table>
+  </div>
+
+  <div class="strat">
+    <div class="strat-hdr">
+      <div class="snum sn2">2</div>
+      <div><div style="font-weight:800;font-size:15px">策略二：新進場者 ── 回調分批布局</div><div style="color:var(--muted);font-size:13px">核心：等待回調至支撐位，分批低接，$2,000-2,075整固中可部分進場</div></div>
+    </div>
+    <table class="btable">
+      <tr><th>批次</th><th>進場條件</th><th>進場區間</th><th>資金比例</th><th>停損</th></tr>
+      <tr><td><span class="bdg bdg-g">第1批</span></td><td>現在即可進（守穩$2,000確認），或等回調至S1</td><td>$2,000~2,075</td><td>30%</td><td>$1,950</td></tr>
+      <tr><td><span class="bdg bdg-g">第2批</span></td><td>回測S1 $1,990-2,050，外資未持續大賣</td><td>$1,990~2,050</td><td>30%</td><td>$1,900</td></tr>
+      <tr><td><span class="bdg bdg-g">第3批</span></td><td>回測S2 $1,900-1,940，出現止跌K線</td><td>$1,900~1,940</td><td>25%</td><td>$1,850</td></tr>
+      <tr><td><span class="bdg bdg-g">第4批</span></td><td>回測S3 $1,835-1,870，KD接近50以下</td><td>$1,835~1,870</td><td>15%</td><td>$1,780</td></tr>
+    </table>
+  </div>
+
+  <div class="strat">
+    <div class="strat-hdr">
+      <div class="snum sn3">3</div>
+      <div><div style="font-weight:800;font-size:15px">策略三：突破追進（積極型）</div><div style="color:var(--muted);font-size:13px">核心：確認突破$2,115前高後追進，需量能配合</div></div>
+    </div>
+    <table class="btable">
+      <tr><th>批次</th><th>觸發條件</th><th>進場區間</th><th>目標</th><th>停損</th></tr>
+      <tr><td><span class="bdg bdg-r">第1批</span></td><td>收盤突破$2,115，且成交量放大30%以上</td><td>$2,100~2,130</td><td>$2,350</td><td>$2,000</td></tr>
+      <tr><td><span class="bdg bdg-r">第2批</span></td><td>突破$2,200，外資連續2日買超</td><td>$2,180~2,220</td><td>$2,500</td><td>$2,100</td></tr>
+      <tr><td><span class="bdg bdg-r">第3批</span></td><td>突破$2,350後短線回測確認</td><td>$2,330~2,370</td><td>$2,600</td><td>$2,200</td></tr>
+      <tr><td><span class="bdg bdg-r">第4批</span></td><td>移動停利追蹤</td><td>依市況</td><td>追蹤高點</td><td>高點-8%</td></tr>
+    </table>
+  </div>
+
+  <div class="section-title">📊 分批停利計畫</div>
+  <div class="grid4">
+    <div class="card hl"><div class="card-title">第1批 20%</div><div class="card-val" style="color:var(--accent)">$2,200</div><div style="font-size:12px;color:var(--muted);margin-top:4px">先鎖獲利</div></div>
+    <div class="card hl"><div class="card-title">第2批 25%</div><div class="card-val" style="color:var(--accent)">$2,400</div><div style="font-size:12px;color:var(--muted);margin-top:4px">波段目標1</div></div>
+    <div class="card hl"><div class="card-title">第3批 25%</div><div class="card-val" style="color:var(--accent)">$2,600</div><div style="font-size:12px;color:var(--muted);margin-top:4px">波段目標2</div></div>
+    <div class="card hl"><div class="card-title">第4批 30%</div><div class="card-val" style="color:var(--accent)">追蹤停利</div><div style="font-size:12px;color:var(--muted);margin-top:4px">讓利潤奔跑</div></div>
+  </div>
+</div>
+
+<!-- TAB 4 週線 -->
+<div class="panel" id="p4">
+  <div class="section-title">📅 週線全覽（近20週）</div>
+  <div class="chart-wrap"><h3>📈 週線高低區間走勢圖</h3><canvas id="weeklyChart"></canvas></div>
+  <div class="chart-wrap"><h3>💰 週線外資買賣超（萬張）</h3><canvas id="weeklyForeignChart"></canvas></div>
+  <div style="overflow-x:auto">
+    <table>
+      <tr><th>週別</th><th>時間範圍</th><th>開盤</th><th>最高</th><th>最低</th><th>收盤</th><th>週漲跌</th><th>外資(萬)</th><th>投信(萬)</th></tr>
+      <tr><td>2025-W49</td><td>12/04~12/05</td><td>999</td><td style='color:#22c55e'>1005</td><td style='color:#ef4444'>973</td><td style='color:#ef4444;font-weight:700'>979</td><td style='color:#ef4444'>-20(-2.0%)</td><td style='color:#ef4444'>-29</td><td style='color:#ef4444'>-6</td></tr>
+<tr><td>2025-W50</td><td>12/08~12/12</td><td>985</td><td style='color:#22c55e'>993</td><td style='color:#ef4444'>929</td><td style='color:#ef4444;font-weight:700'>938</td><td style='color:#ef4444'>-47(-4.8%)</td><td style='color:#ef4444'>-319</td><td style='color:#ef4444'>-91</td></tr>
+<tr><td>2025-W51</td><td>12/15~12/19</td><td>917</td><td style='color:#22c55e'>933</td><td style='color:#ef4444'>886</td><td style='color:#ef4444;font-weight:700'>911</td><td style='color:#ef4444'>-6(-0.7%)</td><td style='color:#ef4444'>-1,155</td><td style='color:#ef4444'>-4</td></tr>
+<tr><td>2025-W52</td><td>12/22~12/26</td><td>911</td><td style='color:#22c55e'>965</td><td style='color:#ef4444'>909</td><td style='color:#22c55e;font-weight:700'>956</td><td style='color:#22c55e'>+45(+4.9%)</td><td style='color:#ef4444'>-92</td><td style='color:#22c55e'>+81</td></tr>
+<tr><td>2026-W01</td><td>12/29~01/02</td><td>960</td><td style='color:#22c55e'>998</td><td style='color:#ef4444'>950</td><td style='color:#22c55e;font-weight:700'>995</td><td style='color:#22c55e'>+35(+3.6%)</td><td style='color:#22c55e'>+436</td><td style='color:#22c55e'>+5</td></tr>
+<tr><td>2026-W02</td><td>01/05~01/09</td><td>1010</td><td style='color:#22c55e'>1085</td><td style='color:#ef4444'>983</td><td style='color:#22c55e;font-weight:700'>1015</td><td style='color:#22c55e'>+5(+0.5%)</td><td style='color:#22c55e'>+1,026</td><td style='color:#22c55e'>+33</td></tr>
+<tr><td>2026-W03</td><td>01/12~01/16</td><td>1040</td><td style='color:#22c55e'>1135</td><td style='color:#ef4444'>1025</td><td style='color:#22c55e;font-weight:700'>1125</td><td style='color:#22c55e'>+85(+8.2%)</td><td style='color:#22c55e'>+903</td><td style='color:#22c55e'>+81</td></tr>
+<tr><td>2026-W04</td><td>01/19~01/23</td><td>1145</td><td style='color:#22c55e'>1285</td><td style='color:#ef4444'>1100</td><td style='color:#22c55e;font-weight:700'>1260</td><td style='color:#22c55e'>+115(+10.0%)</td><td style='color:#22c55e'>+315</td><td style='color:#22c55e'>+80</td></tr>
+<tr><td>2026-W05</td><td>01/26~01/30</td><td>1220</td><td style='color:#22c55e'>1315</td><td style='color:#ef4444'>1205</td><td style='color:#22c55e;font-weight:700'>1220</td><td style='color:#22c55e'>+0(+0.0%)</td><td style='color:#ef4444'>-270</td><td style='color:#22c55e'>+89</td></tr>
+<tr><td>2026-W06</td><td>02/02~02/06</td><td>1185</td><td style='color:#22c55e'>1220</td><td style='color:#ef4444'>1115</td><td style='color:#ef4444;font-weight:700'>1160</td><td style='color:#ef4444'>-25(-2.1%)</td><td style='color:#ef4444'>-632</td><td style='color:#ef4444'>-55</td></tr>
+<tr><td>2026-W07</td><td>02/09~02/11</td><td>1200</td><td style='color:#22c55e'>1265</td><td style='color:#ef4444'>1170</td><td style='color:#22c55e;font-weight:700'>1260</td><td style='color:#22c55e'>+60(+5.0%)</td><td style='color:#22c55e'>+9</td><td style='color:#22c55e'>+73</td></tr>
+<tr><td>2026-W09</td><td>02/23~02/26</td><td>1320</td><td style='color:#22c55e'>1480</td><td style='color:#ef4444'>1295</td><td style='color:#22c55e;font-weight:700'>1430</td><td style='color:#22c55e'>+110(+8.3%)</td><td style='color:#22c55e'>+201</td><td style='color:#22c55e'>+249</td></tr>
+<tr><td>2026-W10</td><td>03/02~03/06</td><td>1355</td><td style='color:#22c55e'>1445</td><td style='color:#ef4444'>1250</td><td style='color:#ef4444;font-weight:700'>1320</td><td style='color:#ef4444'>-35(-2.6%)</td><td style='color:#ef4444'>-526</td><td style='color:#22c55e'>+122</td></tr>
+<tr><td>2026-W11</td><td>03/09~03/13</td><td>1210</td><td style='color:#22c55e'>1415</td><td style='color:#ef4444'>1195</td><td style='color:#22c55e;font-weight:700'>1385</td><td style='color:#22c55e'>+175(+14.5%)</td><td style='color:#22c55e'>+36</td><td style='color:#22c55e'>+119</td></tr>
+<tr><td>2026-W12</td><td>03/16~03/20</td><td>1395</td><td style='color:#22c55e'>1530</td><td style='color:#ef4444'>1350</td><td style='color:#22c55e;font-weight:700'>1475</td><td style='color:#22c55e'>+80(+5.7%)</td><td style='color:#22c55e'>+801</td><td style='color:#ef4444'>-98</td></tr>
+<tr><td>2026-W13</td><td>03/23~03/27</td><td>1405</td><td style='color:#22c55e'>1565</td><td style='color:#ef4444'>1385</td><td style='color:#22c55e;font-weight:700'>1510</td><td style='color:#22c55e'>+105(+7.5%)</td><td style='color:#22c55e'>+222</td><td style='color:#22c55e'>+145</td></tr>
+<tr><td>2026-W14</td><td>03/30~04/02</td><td>1480</td><td style='color:#22c55e'>1510</td><td style='color:#ef4444'>1365</td><td style='color:#ef4444;font-weight:700'>1430</td><td style='color:#ef4444'>-50(-3.4%)</td><td style='color:#ef4444'>-820</td><td style='color:#22c55e'>+93</td></tr>
+<tr><td>2026-W15</td><td>04/07~04/10</td><td>1495</td><td style='color:#22c55e'>1750</td><td style='color:#ef4444'>1490</td><td style='color:#22c55e;font-weight:700'>1735</td><td style='color:#22c55e'>+240(+16.1%)</td><td style='color:#22c55e'>+915</td><td style='color:#ef4444'>-12</td></tr>
+<tr><td>2026-W16</td><td>04/13~04/17</td><td>1730</td><td style='color:#22c55e'>1870</td><td style='color:#ef4444'>1710</td><td style='color:#22c55e;font-weight:700'>1840</td><td style='color:#22c55e'>+110(+6.4%)</td><td style='color:#22c55e'>+37</td><td style='color:#ef4444'>-20</td></tr>
+<tr><td>2026-W17</td><td>04/20~04/24</td><td>1860</td><td style='color:#22c55e'>2115</td><td style='color:#ef4444'>1860</td><td style='color:#22c55e;font-weight:700'>2075</td><td style='color:#22c55e'>+215(+11.6%)</td><td style='color:#ef4444'>-593</td><td style='color:#22c55e'>+136</td></tr>
+
+    </table>
+  </div>
+
+  <div class="section-title" style="margin-top:20px">🔍 週線技術解析</div>
+  <div class="grid2">
+    <div class="card green"><div class="card-title">週線大趨勢</div><div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--green)">主升段 · 高位震盪整固</div><div style="font-size:13px;color:var(--muted)">本週（4/20-4/24）為突破$2,000後首次震盪整固，週高$2,115創新高後收$2,075，屬健康震盪</div></div>
+    <div class="card cyan"><div class="card-title">週線均線狀況</div><div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--accent2)">週線多頭排列牢固</div><div style="font-size:13px;color:var(--muted)">股價大幅領先週線所有均線，EMA多頭排列距離甚大，趨勢極為強健</div></div>
+    <div class="card hl"><div class="card-title">本週外資動向</div><div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--red)">本週外資淨賣超</div><div style="font-size:13px;color:var(--muted)">4/22-4/23大賣，4/24回買；週合計仍為賣超，為主升段啟動以來首次週線賣超，需持續觀察</div></div>
+    <div class="card purple"><div class="card-title">週線KD</div><div style="font-weight:700;font-size:14px;margin-bottom:6px;color:var(--accent3)">高位震盪，趨勢持續</div><div style="font-size:13px;color:var(--muted)">週線KD超買區震盪，非立即反轉訊號，需配合外資和MACD確認</div></div>
+  </div>
+</div>
+
+<!-- TAB 5 風險 -->
+<div class="panel" id="p5">
+  <div class="notice">⚠️ 評級由A+調降為A，主因外資4/22-4/23出現罕見大賣超，短線風險升溫，但趨勢仍多</div>
+
+  <div class="section-title">🛡️ 四層停損機制</div>
+  <div class="risk-row" style="border:1px solid #ef4444"><span class="risk-icon">🔴</span><div class="risk-info"><div class="risk-title">短線停損（日線確認）</div><div class="risk-desc">跌破$1,980且當日收盤確認（$2,000守穩失敗），短線停損</div></div><div class="risk-price">$1,980</div></div>
+  <div class="risk-row" style="border:1px solid #f59e0b"><span class="risk-icon">🟡</span><div class="risk-info"><div class="risk-title">中線停損（波段操作）</div><div class="risk-desc">跌破S2 $1,900，外資同步持續大賣，中線出場觀望</div></div><div class="risk-price">$1,900</div></div>
+  <div class="risk-row" style="border:1px solid #22d3ee"><span class="risk-icon">🔵</span><div class="risk-info"><div class="risk-title">趨勢停損（EMA12週線確認）</div><div class="risk-desc">跌破EMA12（約$1,870），週線收盤確認，趨勢轉弱出場</div></div><div class="risk-price">~$1,870</div></div>
+  <div class="risk-row" style="border:1px solid #a78bfa"><span class="risk-icon">🟣</span><div class="risk-info"><div class="risk-title">全面停損（趨勢逆轉）</div><div class="risk-desc">跌破EMA26（約$1,708），V形反彈整個結構破壞，全面停損</div></div><div class="risk-price">~$1,708</div></div>
+
+  <div class="section-title" style="margin-top:20px">⚡ 評級調整說明：A+→A</div>
+  <div class="grid2">
+    <div class="warn-box">
+      <div style="font-weight:700;color:#fca5a5;margin-bottom:8px">⬇️ 評級調降原因</div>
+      <ul style="font-size:13px;line-height:2;color:var(--muted)">
+        <li>4/22-4/23 外資連續賣超 -691萬（近期最大規模）</li>
+        <li>4/23 長上影線 + 急殺 $1,935，空方首次明顯反撲</li>
+        <li>MACD hist 由33.26縮至28.71，動能輕微減弱</li>
+        <li>融資由4,804升至5,172，散戶槓桿輕微上升</li>
+      </ul>
+    </div>
+    <div class="ok-box">
+      <div style="font-weight:700;color:#86efac;margin-bottom:8px">⬆️ 維持A（非降至B）的理由</div>
+      <ul style="font-size:13px;line-height:2;color:var(--muted)">
+        <li>4/24 $2,000守穩（最低$1,990）並強彈至$2,075</li>
+        <li>4/24 外資回買+53萬，賣壓屬短暫非趨勢翻空</li>
+        <li>DIF=162.38再創歷史新高，主趨勢動能未斷</li>
+        <li>EMA多頭排列距離收盤仍有大幅緩衝（$205以上）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-title">📊 月度法人統計</div>
+  <table>
+    <tr><th>月份</th><th>外資買賣超(萬)</th><th>投信買賣超(萬)</th><th>月收盤</th><th>月漲跌</th></tr>
+    <tr><td>2025-12</td><td style='color:#ef4444;font-weight:600'>-1,499</td><td style='color:#ef4444;font-weight:600'>-67</td><td style='color:#ef4444;font-weight:700'>$963</td><td style='color:#ef4444'>-3.6%</td></tr>
+<tr><td>2026-01</td><td style='color:#22c55e;font-weight:600'>+2,313</td><td style='color:#22c55e;font-weight:600'>+336</td><td style='color:#22c55e;font-weight:700'>$1220</td><td style='color:#22c55e'>+22.6%</td></tr>
+<tr><td>2026-02</td><td style='color:#ef4444;font-weight:600'>-422</td><td style='color:#22c55e;font-weight:600'>+267</td><td style='color:#22c55e;font-weight:700'>$1430</td><td style='color:#22c55e'>+21.7%</td></tr>
+<tr><td>2026-03</td><td style='color:#ef4444;font-weight:600'>-113</td><td style='color:#22c55e;font-weight:600'>+323</td><td style='color:#ef4444;font-weight:700'>$1380</td><td style='color:#ef4444'>-3.2%</td></tr>
+<tr><td>2026-04</td><td style='color:#22c55e;font-weight:600'>+186</td><td style='color:#22c55e;font-weight:600'>+162</td><td style='color:#22c55e;font-weight:700'>$2075</td><td style='color:#22c55e'>+40.7%</td></tr>
+
+  </table>
+
+  <div class="section-title" style="margin-top:20px">📋 綜合評級結論</div>
+  <div class="milestone-box">
+    <h2>評級：A（由A+微降）</h2>
+    <p style="font-size:14px;color:var(--text);margin-top:8px">$2,000守穩，趨勢仍多，但外資大賣後需觀察籌碼穩定性</p>
+    <p style="margin-top:8px;color:var(--muted)">上方目標：$2,115再突破 → $2,200 → $2,400 → $2,600</p>
+    <p style="margin-top:4px;color:var(--muted)">關鍵支撐：$1,980-2,000（短線）· $1,900（中線）</p>
+    <p style="margin-top:4px;color:#fbbf24">⚠️ 重點觀察：下週外資是否持續回買、MACD hist能否再度放大</p>
+    <p style="margin-top:12px;font-size:12px;color:var(--muted)">本報告僅供技術分析教育用途，不構成任何投資建議</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+const D = {"dates": ["2025-12-04", "2025-12-05", "2025-12-08", "2025-12-09", "2025-12-10", "2025-12-11", "2025-12-12", "2025-12-15", "2025-12-16", "2025-12-17", "2025-12-18", "2025-12-19", "2025-12-22", "2025-12-23", "2025-12-24", "2025-12-26", "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-02", "2026-01-05", "2026-01-06", "2026-01-07", "2026-01-08", "2026-01-09", "2026-01-12", "2026-01-13", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-19", "2026-01-20", "2026-01-21", "2026-01-22", "2026-01-23", "2026-01-26", "2026-01-27", "2026-01-28", "2026-01-29", "2026-01-30", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06", "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-23", "2026-02-24", "2026-02-25", "2026-02-26", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24"], "closes": [999.0, 979.0, 979.0, 971.0, 968.0, 945.0, 938.0, 922.0, 901.0, 890.0, 891.0, 911.0, 953.0, 943.0, 955.0, 956.0, 962.0, 961.0, 963.0, 995.0, 1010.0, 1050.0, 1030.0, 1010.0, 1015.0, 1055.0, 1030.0, 1060.0, 1045.0, 1125.0, 1120.0, 1130.0, 1135.0, 1245.0, 1260.0, 1230.0, 1250.0, 1280.0, 1255.0, 1220.0, 1175.0, 1215.0, 1210.0, 1150.0, 1160.0, 1180.0, 1185.0, 1260.0, 1305.0, 1385.0, 1435.0, 1430.0, 1425.0, 1340.0, 1255.0, 1335.0, 1320.0, 1220.0, 1290.0, 1400.0, 1370.0, 1385.0, 1360.0, 1440.0, 1465.0, 1455.0, 1475.0, 1410.0, 1415.0, 1550.0, 1515.0, 1510.0, 1485.0, 1380.0, 1475.0, 1430.0, 1515.0, 1665.0, 1645.0, 1735.0, 1740.0, 1750.0, 1785.0, 1845.0, 1840.0, 1900.0, 2015.0, 2015.0, 1980.0, 2075.0], "opens": [999.0, 998.0, 985.0, 976.0, 973.0, 970.0, 945.0, 917.0, 908.0, 900.0, 889.0, 899.0, 911.0, 962.0, 952.0, 960.0, 960.0, 964.0, 959.0, 970.0, 1010.0, 1005.0, 1080.0, 1035.0, 1000.0, 1040.0, 1070.0, 1040.0, 1055.0, 1075.0, 1145.0, 1105.0, 1130.0, 1200.0, 1280.0, 1220.0, 1230.0, 1250.0, 1310.0, 1250.0, 1185.0, 1205.0, 1220.0, 1175.0, 1135.0, 1200.0, 1205.0, 1200.0, 1320.0, 1355.0, 1425.0, 1450.0, 1355.0, 1410.0, 1295.0, 1335.0, 1340.0, 1210.0, 1280.0, 1350.0, 1390.0, 1355.0, 1395.0, 1385.0, 1465.0, 1450.0, 1450.0, 1405.0, 1455.0, 1485.0, 1535.0, 1460.0, 1480.0, 1465.0, 1465.0, 1480.0, 1495.0, 1630.0, 1685.0, 1690.0, 1730.0, 1805.0, 1785.0, 1835.0, 1865.0, 1860.0, 1950.0, 2040.0, 2100.0, 2005.0], "highs": [1005.0, 1005.0, 993.0, 980.0, 978.0, 976.0, 948.0, 933.0, 915.0, 907.0, 896.0, 923.0, 957.0, 965.0, 960.0, 962.0, 974.0, 970.0, 974.0, 998.0, 1025.0, 1050.0, 1085.0, 1040.0, 1030.0, 1065.0, 1080.0, 1070.0, 1060.0, 1135.0, 1160.0, 1140.0, 1185.0, 1245.0, 1285.0, 1240.0, 1260.0, 1280.0, 1315.0, 1255.0, 1200.0, 1220.0, 1220.0, 1180.0, 1170.0, 1210.0, 1210.0, 1265.0, 1380.0, 1385.0, 1480.0, 1455.0, 1445.0, 1435.0, 1320.0, 1365.0, 1345.0, 1230.0, 1325.0, 1415.0, 1410.0, 1405.0, 1395.0, 1470.0, 1490.0, 1480.0, 1530.0, 1425.0, 1470.0, 1555.0, 1565.0, 1520.0, 1495.0, 1470.0, 1495.0, 1510.0, 1515.0, 1665.0, 1705.0, 1750.0, 1760.0, 1820.0, 1835.0, 1845.0, 1870.0, 1980.0, 2035.0, 2045.0, 2115.0, 2090.0], "lows": [991.0, 973.0, 970.0, 966.0, 965.0, 945.0, 929.0, 916.0, 899.0, 890.0, 886.0, 895.0, 909.0, 943.0, 948.0, 952.0, 960.0, 957.0, 950.0, 969.0, 1000.0, 983.0, 988.0, 1010.0, 995.0, 1035.0, 1025.0, 1040.0, 1025.0, 1060.0, 1110.0, 1100.0, 1115.0, 1195.0, 1245.0, 1205.0, 1220.0, 1235.0, 1240.0, 1215.0, 1160.0, 1175.0, 1195.0, 1130.0, 1115.0, 1180.0, 1170.0, 1190.0, 1295.0, 1335.0, 1380.0, 1415.0, 1355.0, 1340.0, 1250.0, 1310.0, 1310.0, 1195.0, 1275.0, 1325.0, 1365.0, 1340.0, 1350.0, 1385.0, 1450.0, 1445.0, 1410.0, 1385.0, 1410.0, 1485.0, 1515.0, 1440.0, 1450.0, 1365.0, 1450.0, 1420.0, 1490.0, 1615.0, 1635.0, 1675.0, 1710.0, 1750.0, 1785.0, 1785.0, 1830.0, 1860.0, 1930.0, 1995.0, 1935.0, 1990.0], "ema12": [961.02, 963.79, 966.13, 966.88, 967.05, 963.66, 959.71, 953.91, 945.77, 937.19, 930.08, 927.15, 931.12, 932.95, 936.34, 939.37, 942.85, 945.64, 948.31, 955.5, 963.88, 977.13, 985.26, 989.07, 993.06, 1002.59, 1006.81, 1014.99, 1019.61, 1035.82, 1048.77, 1061.27, 1072.61, 1099.13, 1123.88, 1140.21, 1157.1, 1176.01, 1188.16, 1193.06, 1190.28, 1194.08, 1196.53, 1189.37, 1184.85, 1184.11, 1184.24, 1195.9, 1212.68, 1239.19, 1269.32, 1294.04, 1314.19, 1318.16, 1308.44, 1312.53, 1313.68, 1299.26, 1297.84, 1313.56, 1322.24, 1331.9, 1336.22, 1352.19, 1369.54, 1382.69, 1396.89, 1398.91, 1401.38, 1424.25, 1438.21, 1449.25, 1454.75, 1443.25, 1448.14, 1445.35, 1456.06, 1488.21, 1512.33, 1546.59, 1576.34, 1603.06, 1631.05, 1663.97, 1691.05, 1723.19, 1768.09, 1806.07, 1832.83, 1870.09], "ema26": [962.04, 963.3, 964.46, 964.95, 965.17, 963.68, 961.78, 958.83, 954.55, 949.77, 945.41, 942.86, 943.61, 943.57, 944.42, 945.27, 946.51, 947.59, 948.73, 952.16, 956.44, 963.37, 968.31, 971.39, 974.62, 980.58, 984.24, 989.85, 993.94, 1003.64, 1012.26, 1020.98, 1029.43, 1045.4, 1061.29, 1073.79, 1086.84, 1101.15, 1112.55, 1120.51, 1124.54, 1131.24, 1137.08, 1138.04, 1139.66, 1142.65, 1145.79, 1154.25, 1165.41, 1181.68, 1200.44, 1217.45, 1232.82, 1240.76, 1241.82, 1248.72, 1254.0, 1251.48, 1254.33, 1265.12, 1272.89, 1281.2, 1287.03, 1298.36, 1310.71, 1321.4, 1332.77, 1338.49, 1344.16, 1359.41, 1370.93, 1381.24, 1388.92, 1388.26, 1394.69, 1397.3, 1406.02, 1425.2, 1441.49, 1463.23, 1483.73, 1503.45, 1524.31, 1548.06, 1569.69, 1594.16, 1625.33, 1654.19, 1678.33, 1707.71], "dif": [-1.02, 0.49, 1.67, 1.93, 1.88, -0.02, -2.07, -4.92, -8.78, -12.58, -15.33, -15.72, -12.49, -10.62, -8.07, -5.91, -3.66, -1.94, -0.42, 3.34, 7.44, 13.76, 16.96, 17.67, 18.43, 22.01, 22.57, 25.14, 25.67, 32.18, 36.51, 40.28, 43.18, 53.73, 62.59, 66.42, 70.25, 74.85, 75.61, 72.55, 65.74, 62.84, 59.45, 51.34, 45.19, 41.46, 38.46, 41.65, 47.27, 57.51, 68.87, 76.59, 81.36, 77.4, 66.62, 63.81, 59.68, 47.78, 43.51, 48.43, 49.35, 50.7, 49.19, 53.82, 58.83, 61.29, 64.12, 60.41, 57.22, 64.84, 67.27, 68.02, 65.83, 54.99, 53.45, 48.04, 50.04, 63.0, 70.84, 83.36, 92.61, 99.61, 106.74, 115.9, 121.36, 129.04, 142.76, 151.88, 154.5, 162.38], "macd_sig": [-12.578255004063037, -9.964829046892508, -7.63864678987948, -5.724670943498352, -4.204207430899646, -3.3674643630850736, -3.1071332576916557, -3.4699218601778496, -4.531385926936482, -6.140293169108329, -7.978036225524191, -9.525599731840952, -10.11836224293405, -10.218082762723254, -9.788804530771278, -9.012198522352747, -7.942338043604787, -6.742607419277371, -5.477091967385065, -3.713659560155521, -1.482804071645933, 1.565634266294828, 4.644056803790335, 7.250223796468436, 9.487017935692748, 11.991593686683098, 14.10652409813203, 16.312845069272512, 18.18429236864016, 20.982650574009806, 24.08768823203594, 27.326818870378645, 30.497684542418853, 35.14501640082369, 40.63336148340209, 45.78988511473262, 50.68283990793557, 55.51721411849083, 59.5360499103808, 62.138948748978905, 62.8583415267406, 62.85438719989764, 62.17423027146201, 60.00692499805677, 57.0438939159304, 53.926518044230605, 50.83268247993175, 48.9965087276767, 48.65114406006259, 50.42376170942019, 54.1137609417352, 58.608993660154624, 63.15992976887589, 66.00713248059093, 66.13064407201709, 65.66615231585519, 64.46847819499618, 61.131665330645546, 57.60648067390571, 55.77171316479912, 54.48690042525101, 53.72927025940762, 52.8204638686612, 53.02050903636533, 54.18309011445202, 55.60498725053242, 57.30723377594127, 57.92831147674612, 57.78691732487552, 59.19717078253749, 60.81271219988652, 62.25385823060312, 62.96939982083879, 61.37390305773313, 59.78931677969828, 57.44041494840893, 55.96079528242157, 57.3692053657068, 60.06410101883515, 64.72306922049023, 70.30110434633058, 76.16209671869014, 82.27801404035978, 89.00284360959981, 95.47417333697034, 102.1870364806814, 110.30124162030717, 118.61702189165908, 125.79446186236584, 133.1111174140047], "macd_hist": [11.56, 10.45, 9.3, 7.66, 6.08, 3.35, 1.04, -1.45, -4.25, -6.44, -7.35, -6.19, -2.37, -0.4, 1.72, 3.11, 4.28, 4.8, 5.06, 7.05, 8.92, 12.19, 12.31, 10.42, 8.95, 10.02, 8.46, 8.83, 7.49, 11.19, 12.42, 12.96, 12.68, 18.59, 21.95, 20.63, 19.57, 19.34, 16.08, 10.41, 2.88, -0.02, -2.72, -8.67, -11.85, -12.47, -12.38, -7.34, -1.38, 7.09, 14.76, 17.98, 18.2, 11.39, 0.49, -1.86, -4.79, -13.35, -14.1, -7.34, -5.14, -3.03, -3.64, 0.8, 4.65, 5.69, 6.81, 2.48, -0.57, 5.64, 6.46, 5.76, 2.86, -6.38, -6.34, -9.4, -5.92, 5.63, 10.78, 18.64, 22.31, 23.44, 24.46, 26.9, 25.89, 26.85, 32.46, 33.26, 28.71, 29.27], "k_vals": [85.02, 81.84, 78.16, 70.72, 64.46, 48.91, 36.55, 26.62, 18.37, 12.25, 9.72, 15.35, 34.51, 44.12, 58.52, 68.55, 74.49, 78.07, 81.21, 86.5, 86.69, 91.13, 80.7, 68.62, 61.79, 67.12, 64.5, 69.15, 66.36, 75.38, 75.84, 77.83, 76.45, 84.3, 86.33, 83.83, 84.74, 89.08, 83.42, 74.22, 59.48, 51.48, 45.07, 33.65, 29.93, 30.79, 32.19, 53.68, 59.69, 73.13, 77.97, 80.75, 82.14, 73.04, 57.83, 55.22, 46.96, 34.23, 33.93, 48.9, 55.94, 63.68, 67.45, 74.67, 80.29, 82.9, 81.41, 68.1, 58.56, 71.59, 73.31, 72.02, 66.53, 46.86, 49.57, 43.88, 54.25, 69.5, 73.79, 81.23, 85.8, 85.4, 86.25, 90.83, 91.26, 86.87, 89.58, 90.35, 82.45, 84.65], "d_vals": [71.03, 74.63, 75.81, 74.11, 70.89, 63.57, 54.56, 45.25, 36.29, 28.28, 22.09, 19.84, 24.73, 31.19, 40.3, 49.72, 57.98, 64.67, 70.19, 75.63, 79.31, 83.25, 82.4, 77.81, 72.47, 70.69, 68.63, 68.8, 67.99, 70.45, 72.25, 74.11, 74.89, 78.02, 80.79, 81.81, 82.78, 84.88, 84.39, 81.0, 73.83, 66.38, 59.28, 50.74, 43.8, 39.46, 37.04, 42.59, 48.29, 56.57, 63.7, 69.39, 73.64, 73.44, 68.24, 63.9, 58.25, 50.25, 44.81, 46.17, 49.43, 54.18, 58.6, 63.96, 69.4, 73.9, 76.4, 73.63, 68.61, 69.6, 70.84, 71.23, 69.67, 62.06, 57.9, 53.23, 53.57, 58.88, 63.85, 69.64, 75.03, 78.48, 81.07, 84.33, 86.64, 86.71, 87.67, 88.56, 86.53, 85.9], "foreign": [1034501.0, -1321543.0, 310642.0, 549218.0, 90067.0, -3003296.0, -1140234.0, -877526.0, -2950853.0, -4677028.0, -2171087.0, -873051.0, 588030.0, -865171.0, 85234.0, -727273.0, 80299.0, -125849.0, 1007758.0, 3399839.0, 4375970.0, 5431658.0, -1886230.0, 1843635.0, 492615.0, 2883681.0, -534901.0, 1481676.0, -1022692.0, 6222515.0, -1327151.0, 304796.0, 2394722.0, 3200183.0, -1423582.0, -2542031.0, -39308.0, 1174675.0, -947024.0, -349313.0, 299437.0, -1110195.0, 1111657.0, -6112435.0, -509099.0, -425163.0, -929400.0, 1445691.0, 1709933.0, 1948928.0, 708484.0, -2362220.0, 209880.0, -2065172.0, -1120648.0, -1505047.0, -776978.0, 653780.0, 140147.0, -108060.0, -593219.0, 267955.0, -862911.0, 4059712.0, 1386279.0, 1192833.0, 2239075.0, -2505849.0, 2115448.0, 6439899.0, -1554559.0, -2273031.0, -842121.0, -5627184.0, 440952.0, -2171503.0, 3600615.0, 3910159.0, 1053431.0, 581401.0, -247239.0, -2178418.0, 1623342.0, 2051240.0, -875361.0, 444883.0, 3706.0, -2393989.0, -4521647.0, 534707.0], "foreign_cumsum": [1034501, -287042, 23600, 572818, 662885, -2340411, -3480645, -4358171, -7309024, -11986052, -14157139, -15030190, -14442160, -15307331, -15222097, -15949370, -15869071, -15994920, -14987162, -11587323, -7211353, -1779695, -3665925, -1822290, -1329675, 1554006, 1019105, 2500781, 1478089, 7700604, 6373453, 6678249, 9072971, 12273154, 10849572, 8307541, 8268233, 9442908, 8495884, 8146571, 8446008, 7335813, 8447470, 2335035, 1825936, 1400773, 471373, 1917064, 3626997, 5575925, 6284409, 3922189, 4132069, 2066897, 946249, -558798, -1335776, -681996, -541849, -649909, -1243128, -975173, -1838084, 2221628, 3607907, 4800740, 7039815, 4533966, 6649414, 13089313, 11534754, 9261723, 8419602, 2792418, 3233370, 1061867, 4662482, 8572641, 9626072, 10207473, 9960234, 7781816, 9405158, 11456398, 10581037, 11025920, 11029626, 8635637, 4113990, 4648697], "margin_vals": [7894.0, 7620.0, 7473.0, 7560.0, 7573.0, 7551.0, 7525.0, 7611.0, 7693.0, 7911.0, 8148.0, 8623.0, 8810.0, 8854.0, 8960.0, 8967.0, 8748.0, 8678.0, 8402.0, 8342.0, 8705.0, 8427.0, 8036.0, 7244.0, 7411.0, 7644.0, 7293.0, 7607.0, 7627.0, 8803.0, 8803.0, 8340.0, 8402.0, 8789.0, 8847.0, 8406.0, 8127.0, 7278.0, 6754.0, 6391.0, 6139.0, 6283.0, 6152.0, 6102.0, 5932.0, 6082.0, 6254.0, 6443.0, 6544.0, 6655.0, 6634.0, 6549.0, 6395.0, 5680.0, 5850.0, 5732.0, 5736.0, 5777.0, 5785.0, 5938.0, 5954.0, 5871.0, 5857.0, 5633.0, 5501.0, 5292.0, 5373.0, 5475.0, 5368.0, 6118.0, 5657.0, 5796.0, 5607.0, 5408.0, 5293.0, 5368.0, 5009.0, 5641.0, 4902.0, 4858.0, 4858.0, 5020.0, 4930.0, 4814.0, 4804.0, 4660.0, 4819.0, 4944.0, 4940.0, 5172.0], "w_labels": ["2025-W49", "2025-W50", "2025-W51", "2025-W52", "2026-W01", "2026-W02", "2026-W03", "2026-W04", "2026-W05", "2026-W06", "2026-W07", "2026-W09", "2026-W10", "2026-W11", "2026-W12", "2026-W13", "2026-W14", "2026-W15", "2026-W16", "2026-W17"], "w_high_l": [1005, 993, 933, 965, 998, 1085, 1135, 1285, 1315, 1220, 1265, 1480, 1445, 1415, 1530, 1565, 1510, 1750, 1870, 2115], "w_low_l": [973, 929, 886, 909, 950, 983, 1025, 1100, 1205, 1115, 1170, 1295, 1250, 1195, 1350, 1385, 1365, 1490, 1710, 1860], "w_close_l": [979, 938, 911, 956, 995, 1015, 1125, 1260, 1220, 1160, 1260, 1430, 1320, 1385, 1475, 1510, 1430, 1735, 1840, 2075], "w_open_l": [999, 985, 917, 911, 960, 1010, 1040, 1145, 1220, 1185, 1200, 1320, 1355, 1210, 1395, 1405, 1480, 1495, 1730, 1860], "w_foreign_l": [-29, -319, -1155, -92, 436, 1026, 903, 315, -270, -632, 9, 201, -526, 36, 801, 222, -820, 915, 37, -593]};
+const cfg = {
+  responsive:true, maintainAspectRatio:true,
+  plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+  scales:{
+    x:{ticks:{color:'#64748b',maxTicksLimit:12,font:{size:10}},grid:{color:'#1e293b'}},
+    y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#1e293b'}}
+  }
+};
+new Chart(document.getElementById('priceChart'),{
+  type:'line',
+  data:{labels:D.dates,datasets:[
+    {label:'收盤價',data:D.closes,borderColor:'#f59e0b',borderWidth:2,pointRadius:0,tension:.1},
+    {label:'EMA12',data:D.ema12,borderColor:'#22d3ee',borderWidth:1.5,pointRadius:0,borderDash:[4,2]},
+    {label:'EMA26',data:D.ema26,borderColor:'#a78bfa',borderWidth:1.5,pointRadius:0,borderDash:[4,2]}
+  ]},options:cfg
+});
+const histColors=D.macd_hist.map(v=>v>=0?'rgba(34,197,94,.7)':'rgba(239,68,68,.7)');
+new Chart(document.getElementById('macdChart'),{
+  type:'bar',
+  data:{labels:D.dates,datasets:[
+    {label:'Hist',data:D.macd_hist,backgroundColor:histColors},
+    {label:'DIF',data:D.dif,type:'line',borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0},
+    {label:'Signal',data:D.macd_sig,type:'line',borderColor:'#a78bfa',borderWidth:1.5,pointRadius:0}
+  ]},options:cfg
+});
+new Chart(document.getElementById('kdChart'),{
+  type:'line',
+  data:{labels:D.dates,datasets:[
+    {label:'K',data:D.k_vals,borderColor:'#22c55e',borderWidth:1.5,pointRadius:0},
+    {label:'D',data:D.d_vals,borderColor:'#ef4444',borderWidth:1.5,pointRadius:0}
+  ]},options:cfg
+});
+new Chart(document.getElementById('foreignChart'),{
+  type:'bar',
+  data:{labels:D.dates,datasets:[
+    {label:'外資累計(張)',data:D.foreign_cumsum,backgroundColor:'rgba(34,211,238,.25)',borderColor:'#22d3ee',borderWidth:1,yAxisID:'y'},
+    {label:'融資餘額(張)',data:D.margin_vals,type:'line',borderColor:'#f59e0b',borderWidth:2,pointRadius:0,yAxisID:'y2'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},
+    scales:{
+      x:{ticks:{color:'#64748b',maxTicksLimit:12,font:{size:10}},grid:{color:'#1e293b'}},
+      y:{position:'left',ticks:{color:'#22d3ee',font:{size:10}},grid:{color:'#1e293b'}},
+      y2:{position:'right',ticks:{color:'#f59e0b',font:{size:10}},grid:{drawOnChartArea:false}}
+    }
+  }
+});
+new Chart(document.getElementById('weeklyChart'),{
+  type:'line',
+  data:{labels:D.w_labels,datasets:[
+    {label:'週最高',data:D.w_high_l,borderColor:'#22c55e',borderWidth:2,pointRadius:4,fill:'+1',backgroundColor:'rgba(34,197,94,.08)'},
+    {label:'週最低',data:D.w_low_l,borderColor:'#ef4444',borderWidth:2,pointRadius:4},
+    {label:'週收盤',data:D.w_close_l,borderColor:'#f59e0b',borderWidth:2.5,pointRadius:5}
+  ]},options:cfg
+});
+const wfc=D.w_foreign_l.map(v=>v>=0?'rgba(34,197,94,.7)':'rgba(239,68,68,.7)');
+new Chart(document.getElementById('weeklyForeignChart'),{
+  type:'bar',
+  data:{labels:D.w_labels,datasets:[{label:'外資週買賣超(萬)',data:D.w_foreign_l,backgroundColor:wfc}]},
+  options:cfg
+});
+function sw(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+</script>
+</body></html>
