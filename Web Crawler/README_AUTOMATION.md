@@ -11,7 +11,7 @@ Create these repository secrets under `Settings > Secrets and variables > Action
 - `GOOGLE_DRIVE_FOLDER_ID`: the Drive folder ID where Excel files should be uploaded.
 - `LINE_CHANNEL_ACCESS_TOKEN`: LINE Messaging API channel access token.
 - `LINE_USER_ID`: your LINE user ID. The bot can push only to users who added the official account.
-- `GMAIL_NOTIFY_TO`: email address for failure and weekly summary messages.
+- `GMAIL_NOTIFY_TO`: email address for workflow failure messages.
 - `GMAIL_CLIENT_OR_SERVICE_CONFIG`: Gmail notification configuration JSON.
 
 ## Gmail Config Options
@@ -74,6 +74,7 @@ After pushing the files and adding secrets, open the `Daily PCC Labor Tender Cra
 GitHub Actions native schedules can be delayed. For more reliable morning delivery, use cron-job.org to trigger the existing `workflow_dispatch` endpoint:
 
 - Daily LINE Excel: Monday to Friday `06:45` Asia/Taipei
-- Monday Gmail summary: Monday `07:00` Asia/Taipei
+
+The weekly Gmail summary is no longer used. Gmail is kept only for workflow failure notifications.
 
 See `CRON_JOB_ORG_SETUP.md` for the GitHub token scope, request URL, headers, JSON bodies, and verification checklist.

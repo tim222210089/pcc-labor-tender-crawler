@@ -2,20 +2,9 @@
 
 on:
   workflow_dispatch:
-    inputs:
-      send_weekly_summary:
-        description: Send Gmail weekly summary after success
-        required: false
-        default: 'false'
-        type: choice
-        options:
-          - 'false'
-          - 'true'
   schedule:
     # 06:45 Asia/Taipei every weekday. Fallback until external cron-job.org trigger is verified.
     - cron: '45 22 * * 0-4'
-    # 07:00 Asia/Taipei every Monday, with weekly Gmail summary. Fallback until external cron-job.org trigger is verified.
-    - cron: '0 23 * * 0'
 
 permissions:
   contents: read
@@ -51,19 +40,6 @@ jobs:
       - name: Run tests
         run: python -m unittest -v
 
-      - name: Decide weekly summary
-        id: weekly
-        shell: bash
-        run: |
-          weekly=false
-          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "0 23 * * 0" ]]; then
-            weekly=true
-          fi
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.send_weekly_summary }}" == "true" ]]; then
-            weekly=true
-          fi
-          echo "send_weekly_summary=${weekly}" >> "$GITHUB_OUTPUT"
-
       - name: Resolve Taipei date
         id: taipei-date
         shell: bash
@@ -72,9 +48,6 @@ jobs:
       - name: Run crawler workflow
         run: |
           args=(--date today --output "pcc_labor_tenders_${{ steps.taipei-date.outputs.today }}.xlsx" --skip-if-drive-file-exists)
-          if [[ "${{ steps.weekly.outputs.send_weekly_summary }}" == "true" ]]; then
-            args+=(--send-weekly-summary)
-          fi
           python run_daily_workflow.py "${args[@]}"
 
       - name: Upload Excel artifact on failure

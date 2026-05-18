@@ -13,9 +13,9 @@ Create a fine-grained personal access token:
 
 GitHub API requirement: the workflow dispatch endpoint needs `Actions: write` for fine-grained tokens.
 
-## 2. Common Request Settings
+## 2. Request Settings
 
-Use these values for both cron-job.org jobs:
+Use these values for the cron-job.org daily job:
 
 - URL: `https://api.github.com/repos/tim222210089/pcc-labor-tender-crawler/actions/workflows/daily-pcc-crawler.yml/dispatches`
 - Method: `POST`
@@ -33,7 +33,7 @@ Use these values for both cron-job.org jobs:
 - Body:
 
 ```json
-{"ref":"master","inputs":{"send_weekly_summary":"false"}}
+{"ref":"master","inputs":{}}
 ```
 
 Expected result:
@@ -42,30 +42,19 @@ Expected result:
 - GitHub Actions shows a new `workflow_dispatch` run.
 - LINE receives the Excel link.
 
-## 4. Monday Gmail Summary Job
+## 4. Weekly Summary Job
 
-- Name: `PCC Weekly Summary`
-- Schedule: Monday at `07:00`
-- Body:
+The weekly Gmail summary is no longer used. Disable or delete the cron-job.org job named `PCC Weekly Summary` if it still exists.
 
-```json
-{"ref":"master","inputs":{"send_weekly_summary":"true"}}
-```
+## 5. GitHub Native Fallback
 
-Expected result:
-
-- cron-job.org request succeeds.
-- GitHub Actions shows a new `workflow_dispatch` run.
-- Gmail receives the weekly summary.
-
-## 5. After Both Jobs Are Verified
-
-Remove the `schedule:` block from `.github/workflows/daily-pcc-crawler.yml`.
+The workflow keeps a GitHub native weekday fallback schedule for now:
 
 Keep:
 
 - `workflow_dispatch`
+- Weekday `06:45` Asia/Taipei fallback schedule
 - Taipei-date output filename
 - `--skip-if-drive-file-exists`
 
-This prevents delayed GitHub native schedules from running after cron-job.org has already triggered the same daily file.
+This keeps the daily automation running even if cron-job.org is unavailable. The Drive duplicate check prevents duplicate LINE sends for the same date.
