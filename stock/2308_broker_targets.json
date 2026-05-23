@@ -10,28 +10,36 @@
       "summary": "日系外資看好 AI 電力、散熱需求與 800VDC 業務進展，重申買進評等並給予 2440 元目標價。"
     },
     {
+      "date": "2026-05-04",
+      "broker": "永豐投顧",
+      "rating": "買進",
+      "target_price": 2565,
+      "source": "永豐晨訊",
+      "url": "https://scm.sinotrade.com.tw/Article/GetFile/b6690bb5-b7fa-4fa0-9513-f235bba56fc4",
+      "summary": "永豐晨訊指出 800VDC 電源櫃將於 2027 年量產，營運成長趨勢明確，目標價調升至 2565 元。"
+    },
+    {
       "date": "2026-04-22",
       "broker": "FactSet 共識",
       "rating": "市場共識",
       "target_price": 1960,
       "source": "鉅亨網",
-      "url": "https://news.cnyes.com/news/id/6429625",
-      "summary": "FactSet 調查 23 位分析師，2026 年 EPS 中位數上修至 37.12 元，預估目標價 1960 元。"
+      "url": "https://www.cnyes.com/twstock/foreignrating.aspx?code=2308",
+      "summary": "FactSet 調查資料列示 2026 年 EPS 37.12 元，預估目標價 1960 元。"
     },
     {
-      "date": "2026-04-21",
-      "broker": "日系外資",
+      "date": "2026-04-18",
+      "broker": "本土投顧",
       "rating": "買進",
-      "target_price": 2440,
-      "previous_target_price": 1660,
-      "source": "東森財經/財訊快報",
-      "url": "https://fnc.ebc.net.tw/fncnews/stock/209493",
-      "summary": "日系外資認為台達電在散熱與高功率電源具領先優勢，將目標價由 1660 元大幅調高至 2440 元。"
+      "target_price": 1890,
+      "source": "FTNN",
+      "url": "https://www.ftnn.com.tw/news/535699",
+      "summary": "本土投顧看好 AI 電源與液冷需求，但也提醒水冷競爭與 HVDC 量產節奏，給予 1890 元目標價。"
     }
   ],
   "consensus": {
-    "average_target": 2280,
-    "highest_target": 2440,
-    "lowest_target": 1960
+    "average_target": 2214,
+    "highest_target": 2565,
+    "lowest_target": 1890
   }
 }
