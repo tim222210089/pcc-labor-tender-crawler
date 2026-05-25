@@ -220,7 +220,41 @@ def find_drive_file_by_name(service, folder_id: str, file_name: str) -> dict[str
     return files[0] if files else None
 
 
-def upload_to_drive(output_path: Path, folder_id: str, skip_if_exists: bool = False) -> UploadResult:
+def make_drive_file_public(service, file_id: str) -> None:
+    from googleapiclient.errors import HttpError
+
+    try:
+        execute_drive_request(
+            service.permissions().create(
+                fileId=file_id,
+                body={"role": "reader", "type": "anyone"},
+                fields="id",
+                supportsAllDrives=True,
+            ),
+            "create_drive_permission",
+        )
+    except HttpError as exc:
+        status = int(getattr(exc.resp, "status", 0) or 0)
+        content = getattr(exc, "content", b"")
+        if status in {400, 403} and b"already" in content.lower() and b"permission" in content.lower():
+            print(f"drive_permission=already_public file_id={file_id}")
+            return
+        raise
+
+
+def refresh_drive_file(service, file_id: str) -> dict[str, str]:
+    return execute_drive_request(
+        service.files().get(fileId=file_id, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True),
+        "refresh_drive_file",
+    )
+
+
+def upload_to_drive(
+    output_path: Path,
+    folder_id: str,
+    skip_if_exists: bool = False,
+    notify_if_exists: bool = False,
+) -> UploadResult:
     from googleapiclient.http import MediaFileUpload
 
     service, drive_account = build_configured_drive_service()
@@ -230,6 +264,16 @@ def upload_to_drive(output_path: Path, folder_id: str, skip_if_exists: bool = Fa
         existing = find_drive_file_by_name(service, folder_id, output_path.name)
         if existing:
             print(f"drive_existing_file_id={existing.get('id')}")
+            if notify_if_exists:
+                file_id = existing["id"]
+                make_drive_file_public(service, file_id)
+                refreshed = refresh_drive_file(service, file_id)
+                return UploadResult(
+                    file_id=file_id,
+                    web_view_link=refreshed.get("webViewLink", existing.get("webViewLink", "")),
+                    web_content_link=refreshed.get("webContentLink", existing.get("webContentLink", "")),
+                    created=False,
+                )
             return UploadResult(
                 file_id=existing["id"],
                 web_view_link=existing.get("webViewLink", ""),
@@ -248,19 +292,8 @@ def upload_to_drive(output_path: Path, folder_id: str, skip_if_exists: bool = Fa
         "create_drive_file",
     )
     file_id = created["id"]
-    execute_drive_request(
-        service.permissions().create(
-            fileId=file_id,
-            body={"role": "reader", "type": "anyone"},
-            fields="id",
-            supportsAllDrives=True,
-        ),
-        "create_drive_permission",
-    )
-    refreshed = execute_drive_request(
-        service.files().get(fileId=file_id, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True),
-        "refresh_drive_file",
-    )
+    make_drive_file_public(service, file_id)
+    refreshed = refresh_drive_file(service, file_id)
     return UploadResult(
         file_id=file_id,
         web_view_link=refreshed.get("webViewLink", ""),
@@ -400,9 +433,13 @@ def run(args: argparse.Namespace) -> int:
             export_result.output_path,
             get_required_env("GOOGLE_DRIVE_FOLDER_ID"),
             skip_if_exists=args.skip_if_drive_file_exists,
+            notify_if_exists=args.notify_if_drive_file_exists,
         )
         if upload_result.created:
             send_line_message(success_message(export_result, upload_result))
+        elif args.notify_if_drive_file_exists:
+            send_line_message(success_message(export_result, upload_result))
+            print("line_notification=sent_existing_drive_file")
         else:
             print("line_notification=skipped_existing_drive_file")
         if args.send_weekly_summary:
@@ -445,6 +482,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--skip-if-drive-file-exists",
         action="store_true",
         help="skip LINE notification when a file with the same name already exists in the target Drive folder",
+    )
+    parser.add_argument(
+        "--notify-if-drive-file-exists",
+        action="store_true",
+        help="send LINE notification with the existing Drive file link when a same-name file already exists",
     )
     return parser
 

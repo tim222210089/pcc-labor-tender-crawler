@@ -2,6 +2,15 @@
 
 on:
   workflow_dispatch:
+    inputs:
+      resend_existing_drive_file:
+        description: Resend LINE when today's Drive file already exists
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
   schedule:
     # 06:45 Asia/Taipei every weekday. Fallback until external cron-job.org trigger is verified.
     - cron: '45 22 * * 0-4'
@@ -48,6 +57,9 @@ jobs:
       - name: Run crawler workflow
         run: |
           args=(--date today --output "pcc_labor_tenders_${{ steps.taipei-date.outputs.today }}.xlsx" --skip-if-drive-file-exists)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.resend_existing_drive_file }}" == "true" ]]; then
+            args+=(--notify-if-drive-file-exists)
+          fi
           python run_daily_workflow.py "${args[@]}"
 
       - name: Upload Excel artifact on failure

@@ -19,8 +19,8 @@ from run_daily_workflow import (
 )
 
 
-def http_error(status: int) -> HttpError:
-    return HttpError(Response({"status": str(status), "reason": "test"}), b'{"error":"test"}')
+def http_error(status: int, content: bytes = b'{"error":"test"}') -> HttpError:
+    return HttpError(Response({"status": str(status), "reason": "test"}), content)
 
 
 class FakeDriveRequest:
@@ -37,11 +37,15 @@ class FakeDriveRequest:
 
 
 class FakeDriveFiles:
-    def __init__(self):
+    def __init__(self, existing_files=None):
+        self.list_request = FakeDriveRequest([{"files": existing_files or []}])
         self.create_request = FakeDriveRequest([{"id": "file-1"}])
         self.refresh_request = FakeDriveRequest(
             [{"id": "file-1", "webViewLink": "https://drive/file-1", "webContentLink": "https://drive/download/file-1"}]
         )
+
+    def list(self, **kwargs):
+        return self.list_request
 
     def create(self, **kwargs):
         return self.create_request
@@ -51,17 +55,17 @@ class FakeDriveFiles:
 
 
 class FakeDrivePermissions:
-    def __init__(self):
-        self.create_request = FakeDriveRequest([http_error(503), {"id": "permission-1"}])
+    def __init__(self, effects=None):
+        self.create_request = FakeDriveRequest(effects or [http_error(503), {"id": "permission-1"}])
 
     def create(self, **kwargs):
         return self.create_request
 
 
 class FakeDriveService:
-    def __init__(self):
-        self.files_resource = FakeDriveFiles()
-        self.permissions_resource = FakeDrivePermissions()
+    def __init__(self, existing_files=None, permission_effects=None):
+        self.files_resource = FakeDriveFiles(existing_files)
+        self.permissions_resource = FakeDrivePermissions(permission_effects)
 
     def files(self):
         return self.files_resource
@@ -143,6 +147,7 @@ class RunDailyWorkflowTests(unittest.TestCase):
             output="out.xlsx",
             keywords="keyword",
             skip_if_drive_file_exists=True,
+            notify_if_drive_file_exists=False,
             send_weekly_summary=False,
         )
         export_result = ExportResult(Path("out.xlsx"), date(2026, 5, 25), 1, 2, 3)
@@ -157,6 +162,111 @@ class RunDailyWorkflowTests(unittest.TestCase):
             self.assertEqual(run(args), 0)
 
         send_line.assert_not_called()
+        send_gmail.assert_not_called()
+
+    def test_upload_to_drive_can_resend_existing_drive_file(self) -> None:
+        existing_files = [
+            {
+                "id": "existing-file",
+                "webViewLink": "https://drive/old",
+                "webContentLink": "https://drive/old-download",
+            }
+        ]
+        service = FakeDriveService(existing_files)
+        service.files_resource.refresh_request = FakeDriveRequest(
+            [
+                {
+                    "id": "existing-file",
+                    "webViewLink": "https://drive/existing-file",
+                    "webContentLink": "https://drive/download/existing-file",
+                }
+            ]
+        )
+        with (
+            patch("run_daily_workflow.build_configured_drive_service", return_value=(service, "owner@example.com")),
+            patch("run_daily_workflow.assert_drive_folder_access"),
+            patch("run_daily_workflow.time.sleep") as sleep,
+        ):
+            result = upload_to_drive(
+                Path("out.xlsx"),
+                "folder-id",
+                skip_if_exists=True,
+                notify_if_exists=True,
+            )
+
+        self.assertEqual(
+            result,
+            UploadResult(
+                file_id="existing-file",
+                web_view_link="https://drive/existing-file",
+                web_content_link="https://drive/download/existing-file",
+                created=False,
+            ),
+        )
+        self.assertEqual(service.files_resource.create_request.execute_count, 0)
+        self.assertEqual(service.permissions_resource.create_request.execute_count, 2)
+        sleep.assert_called_once_with(2)
+
+    def test_upload_to_drive_resend_ignores_existing_public_permission(self) -> None:
+        existing_files = [
+            {
+                "id": "existing-file",
+                "webViewLink": "https://drive/old",
+                "webContentLink": "https://drive/old-download",
+            }
+        ]
+        service = FakeDriveService(
+            existing_files,
+            permission_effects=[http_error(403, b'{"message":"The permission already exists."}')],
+        )
+        service.files_resource.refresh_request = FakeDriveRequest(
+            [
+                {
+                    "id": "existing-file",
+                    "webViewLink": "https://drive/existing-file",
+                    "webContentLink": "https://drive/download/existing-file",
+                }
+            ]
+        )
+        with (
+            patch("run_daily_workflow.build_configured_drive_service", return_value=(service, "owner@example.com")),
+            patch("run_daily_workflow.assert_drive_folder_access"),
+            patch("run_daily_workflow.time.sleep") as sleep,
+        ):
+            result = upload_to_drive(
+                Path("out.xlsx"),
+                "folder-id",
+                skip_if_exists=True,
+                notify_if_exists=True,
+            )
+
+        self.assertEqual(result.file_id, "existing-file")
+        self.assertEqual(result.web_view_link, "https://drive/existing-file")
+        self.assertEqual(service.files_resource.create_request.execute_count, 0)
+        self.assertEqual(service.permissions_resource.create_request.execute_count, 1)
+        sleep.assert_not_called()
+
+    def test_run_sends_line_when_existing_drive_file_resend_is_requested(self) -> None:
+        args = Namespace(
+            date="today",
+            output="out.xlsx",
+            keywords="keyword",
+            skip_if_drive_file_exists=True,
+            notify_if_drive_file_exists=True,
+            send_weekly_summary=False,
+        )
+        export_result = ExportResult(Path("out.xlsx"), date(2026, 5, 25), 1, 2, 3)
+        upload_result = UploadResult("file-1", "https://drive/file-1", "", created=False)
+        with (
+            patch.dict("run_daily_workflow.os.environ", {"GOOGLE_DRIVE_FOLDER_ID": "folder-id"}),
+            patch("run_daily_workflow.export_excel", return_value=export_result),
+            patch("run_daily_workflow.upload_to_drive", return_value=upload_result),
+            patch("run_daily_workflow.send_line_message") as send_line,
+            patch("run_daily_workflow.send_gmail_notification") as send_gmail,
+        ):
+            self.assertEqual(run(args), 0)
+
+        send_line.assert_called_once()
         send_gmail.assert_not_called()
 
 
