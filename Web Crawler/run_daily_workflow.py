@@ -6,6 +6,7 @@ import json
 import os
 import smtplib
 import sys
+import time
 import traceback
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -29,6 +30,8 @@ from export_pcc_labor_tenders import (
 
 DRIVE_FILE_FIELDS = "id,name,webViewLink,webContentLink"
 EXCEL_MIME_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+DRIVE_RETRY_STATUSES = {429, 500, 502, 503, 504}
+DRIVE_RETRY_DELAYS_SECONDS = [2, 5, 10, 20, 30]
 
 
 @dataclass(frozen=True)
@@ -133,7 +136,7 @@ def build_configured_drive_service() -> tuple[Any, str]:
 
 
 def list_visible_drive_folders(service) -> list[dict[str, str]]:
-    response = (
+    response = execute_drive_request(
         service.files()
         .list(
             q="mimeType='application/vnd.google-apps.folder' and trashed=false",
@@ -141,10 +144,26 @@ def list_visible_drive_folders(service) -> list[dict[str, str]]:
             includeItemsFromAllDrives=True,
             supportsAllDrives=True,
             pageSize=20,
-        )
-        .execute()
+        ),
+        "list_visible_drive_folders",
     )
     return response.get("files", [])
+
+
+def execute_drive_request(request: Any, operation: str) -> dict[str, Any]:
+    from googleapiclient.errors import HttpError
+
+    for attempt, delay in enumerate([0, *DRIVE_RETRY_DELAYS_SECONDS], start=1):
+        if delay:
+            time.sleep(delay)
+        try:
+            return request.execute()
+        except HttpError as exc:
+            status = int(getattr(exc.resp, "status", 0) or 0)
+            if status not in DRIVE_RETRY_STATUSES or attempt > len(DRIVE_RETRY_DELAYS_SECONDS):
+                raise
+            print(f"drive_api_retry={operation} status={status} attempt={attempt}")
+    raise RuntimeError(f"Google Drive request did not complete: {operation}")
 
 
 def assert_drive_folder_access(service, folder_id: str, drive_account: str) -> None:
@@ -153,14 +172,14 @@ def assert_drive_folder_access(service, folder_id: str, drive_account: str) -> N
     print(f"drive_account={drive_account}")
     print(f"drive_folder_id={folder_id}")
     try:
-        folder = (
+        folder = execute_drive_request(
             service.files()
             .get(
                 fileId=folder_id,
                 fields="id,name,mimeType,owners(displayName,emailAddress)",
                 supportsAllDrives=True,
-            )
-            .execute()
+            ),
+            "get_drive_folder",
         )
     except HttpError as exc:
         if exc.resp.status != 404:
@@ -185,7 +204,7 @@ def drive_query_literal(value: str) -> str:
 def find_drive_file_by_name(service, folder_id: str, file_name: str) -> dict[str, str] | None:
     folder = drive_query_literal(folder_id)
     name = drive_query_literal(file_name)
-    response = (
+    response = execute_drive_request(
         service.files()
         .list(
             q=f"name='{name}' and '{folder}' in parents and trashed=false",
@@ -194,8 +213,8 @@ def find_drive_file_by_name(service, folder_id: str, file_name: str) -> dict[str
             supportsAllDrives=True,
             orderBy="createdTime desc",
             pageSize=1,
-        )
-        .execute()
+        ),
+        "find_drive_file_by_name",
     )
     files = response.get("files", [])
     return files[0] if files else None
@@ -224,19 +243,24 @@ def upload_to_drive(output_path: Path, folder_id: str, skip_if_exists: bool = Fa
         "parents": [folder_id],
         "mimeType": EXCEL_MIME_TYPE,
     }
-    created = (
-        service.files()
-        .create(body=metadata, media_body=media, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True)
-        .execute()
+    created = execute_drive_request(
+        service.files().create(body=metadata, media_body=media, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True),
+        "create_drive_file",
     )
     file_id = created["id"]
-    service.permissions().create(
-        fileId=file_id,
-        body={"role": "reader", "type": "anyone"},
-        fields="id",
-        supportsAllDrives=True,
-    ).execute()
-    refreshed = service.files().get(fileId=file_id, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True).execute()
+    execute_drive_request(
+        service.permissions().create(
+            fileId=file_id,
+            body={"role": "reader", "type": "anyone"},
+            fields="id",
+            supportsAllDrives=True,
+        ),
+        "create_drive_permission",
+    )
+    refreshed = execute_drive_request(
+        service.files().get(fileId=file_id, fields=DRIVE_FILE_FIELDS, supportsAllDrives=True),
+        "refresh_drive_file",
+    )
     return UploadResult(
         file_id=file_id,
         web_view_link=refreshed.get("webViewLink", ""),
