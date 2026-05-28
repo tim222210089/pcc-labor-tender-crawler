@@ -5,7 +5,7 @@ import html
 import re
 import sys
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
@@ -49,19 +49,13 @@ AWARD_POST_BASE = {
     "isLogIn": "N",
 }
 TENDER_HEADERS = ["機關名稱", "標案名稱", "公告日期", "截止投標", "預算金額"]
-AWARDED_HEADERS = ["機關名稱", "標案名稱", "公告日期", "得標廠商", "決標金額", "決標公告", "無法決標"]
-FAILED_AWARD_HEADERS = ["機關名稱", "標案名稱", "公告日期", "無法決標的理由", "決標金額", "決標公告", "無法決標"]
+AWARD_HEADERS = ["機關名稱", "標案名稱", "公告日期", "決標金額", "決標公告", "無法決標"]
 DEFAULT_KEYWORDS = ["委託", "設計", "監造", "技術服務"]
 SUPPORT_ONLY_KEYWORD = "委託"
 TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 TITLE_RE = re.compile(r'pageCode2Img\("(?P<title>.*?)"\)')
 PAGE_LINK_RE = re.compile(r'href="(?P<href>\?[^"]*d-\d+-p=\d+[^"]*)"')
 PAGE_PARAM_RE = re.compile(r"[?&](?P<name>d-\d+-p)=(?P<page>\d+)")
-DETAIL_LINK_RE = re.compile(r"/prkms/urlSelector/common/(?:atm|nonAtm)\?pk=")
-WINNING_VENDOR_RE = re.compile(
-    r"span\[id='spanItem\[\d+\]\.obtain\[\d+\]\.suppName'\].*?bidderCnsToImg\(\"(?P<name>.*?)\"\)",
-    re.DOTALL,
-)
 
 
 @dataclass(frozen=True)
@@ -85,27 +79,12 @@ class AwardRecord:
     award_amount: str
     award_notice: str
     failed_award: str
-    detail_url: str = ""
-    winning_vendor: str = ""
-    failed_reason: str = ""
 
-    def as_awarded_row(self) -> list[str]:
+    def as_row(self) -> list[str]:
         return [
             self.agency,
             self.title,
             self.notice_date,
-            self.winning_vendor,
-            self.award_amount,
-            self.award_notice,
-            self.failed_award,
-        ]
-
-    def as_failed_row(self) -> list[str]:
-        return [
-            self.agency,
-            self.title,
-            self.notice_date,
-            self.failed_reason,
             self.award_amount,
             self.award_notice,
             self.failed_award,
@@ -217,10 +196,6 @@ def parse_award_rows(page_html: str) -> list[AwardRecord]:
         cells = row.find_all("td")
         if len(cells) < 9:
             continue
-        detail_link = row.find("a", href=DETAIL_LINK_RE)
-        detail_url = ""
-        if detail_link and detail_link.get("href"):
-            detail_url = urljoin(BASE_URL, html.unescape(detail_link["href"]))
         records.append(
             AwardRecord(
                 agency=normalize_space(cells[1].get_text(" ", strip=True)),
@@ -229,53 +204,9 @@ def parse_award_rows(page_html: str) -> list[AwardRecord]:
                 award_amount=normalize_space(cells[6].get_text(" ", strip=True)),
                 award_notice=normalize_space(cells[7].get_text(" ", strip=True)),
                 failed_award=normalize_space(cells[8].get_text(" ", strip=True)),
-                detail_url=detail_url,
             )
         )
     return records
-
-
-def unique_join(values: Iterable[str]) -> str:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        cleaned = normalize_space(value)
-        if not cleaned or cleaned in seen:
-            continue
-        seen.add(cleaned)
-        result.append(cleaned)
-    return "、".join(result)
-
-
-def parse_winning_vendors(detail_html: str) -> str:
-    script_vendors = [
-        normalize_space(html.unescape(match.group("name").replace(r"\"", '"')))
-        for match in WINNING_VENDOR_RE.finditer(detail_html)
-    ]
-    if script_vendors:
-        return unique_join(script_vendors)
-
-    soup = BeautifulSoup(detail_html, "html.parser")
-    vendors: list[str] = []
-    for span in soup.select("span[id^='spanItem'][id*='.obtain['][id$='.suppName']"):
-        vendors.append(span.get_text(" ", strip=True))
-    return unique_join(vendors)
-
-
-def find_labeled_value(soup: BeautifulSoup, label: str) -> str:
-    for cell in soup.find_all(["td", "th"]):
-        if normalize_space(cell.get_text(" ", strip=True)) != label:
-            continue
-        sibling = cell.find_next_sibling(["td", "th"])
-        if sibling is None:
-            continue
-        return normalize_space(sibling.get_text(" ", strip=True))
-    return ""
-
-
-def parse_failed_award_reason(detail_html: str) -> str:
-    soup = BeautifulSoup(detail_html, "html.parser")
-    return find_labeled_value(soup, "無法決標的理由")
 
 
 def parse_next_page_links(page_html: str) -> list[str]:
@@ -411,38 +342,6 @@ def fetch_award_records(target_date: date, tender_status: str) -> list[AwardReco
     return unique_awards(all_records)
 
 
-def enrich_awarded_records_with_vendors(records: Iterable[AwardRecord]) -> list[AwardRecord]:
-    session = build_session(AWARD_SEARCH_PATH)
-    enriched: list[AwardRecord] = []
-    for record in records:
-        if not record.detail_url:
-            enriched.append(record)
-            continue
-        try:
-            detail_html = fetch_with_retries(session, "GET", record.detail_url)
-            enriched.append(replace(record, winning_vendor=parse_winning_vendors(detail_html)))
-        except Exception as exc:
-            print(f"award_detail_warning={record.detail_url} error={exc}", file=sys.stderr)
-            enriched.append(record)
-    return enriched
-
-
-def enrich_failed_awards_with_reasons(records: Iterable[AwardRecord]) -> list[AwardRecord]:
-    session = build_session(AWARD_SEARCH_PATH)
-    enriched: list[AwardRecord] = []
-    for record in records:
-        if not record.detail_url:
-            enriched.append(record)
-            continue
-        try:
-            detail_html = fetch_with_retries(session, "GET", record.detail_url)
-            enriched.append(replace(record, failed_reason=parse_failed_award_reason(detail_html)))
-        except Exception as exc:
-            print(f"failed_award_detail_warning={record.detail_url} error={exc}", file=sys.stderr)
-            enriched.append(record)
-    return enriched
-
-
 def filter_labor_records(records: Iterable[TenderRecord]) -> list[TenderRecord]:
     return [record for record in records if record.procurement_type == "勞務類"]
 
@@ -481,7 +380,7 @@ def configure_sheet(sheet, headers: list[str], rows: list[list[str]]) -> None:
         for cell in row:
             cell.font = body_font
 
-    widths = [22, 56, 14, 30, 18, 14, 14]
+    widths = [22, 56, 14, 14, 18, 14]
     for idx, width in enumerate(widths[: len(headers)], start=1):
         sheet.column_dimensions[chr(64 + idx)].width = width
     sheet.freeze_panes = "A2"
@@ -502,8 +401,8 @@ def write_workbook(
     keyword_failed_sheet = wb.create_sheet("keyword_failed_awards")
 
     configure_sheet(keyword_sheet, TENDER_HEADERS, [record.as_row() for record in keyword_rows])
-    configure_sheet(keyword_awarded_sheet, AWARDED_HEADERS, [record.as_awarded_row() for record in keyword_awarded_rows])
-    configure_sheet(keyword_failed_sheet, FAILED_AWARD_HEADERS, [record.as_failed_row() for record in keyword_failed_rows])
+    configure_sheet(keyword_awarded_sheet, AWARD_HEADERS, [record.as_row() for record in keyword_awarded_rows])
+    configure_sheet(keyword_failed_sheet, AWARD_HEADERS, [record.as_row() for record in keyword_failed_rows])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(output_path)
@@ -544,8 +443,6 @@ def main() -> int:
     failed_rows = fetch_award_records(target_date, "TENDER_STATUS_2")
     keyword_awarded_rows = filter_keyword_matches(awarded_rows, keywords)
     keyword_failed_rows = filter_keyword_matches(failed_rows, keywords)
-    keyword_awarded_rows = enrich_awarded_records_with_vendors(keyword_awarded_rows)
-    keyword_failed_rows = enrich_failed_awards_with_reasons(keyword_failed_rows)
     write_workbook(output_path, keyword_records, keyword_awarded_rows, keyword_failed_rows)
 
     print(f"output={output_path}")
