@@ -1,18 +1,24 @@
 ﻿import unittest
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 from export_pcc_labor_tenders import (
+    AWARDED_HEADERS,
     AwardRecord,
+    FAILED_AWARD_HEADERS,
     TenderRecord,
     build_all_page_links,
     extract_title,
     filter_keyword_matches,
     normalize_space,
     parse_award_rows,
+    parse_failed_award_reason,
     parse_next_page_links,
     parse_tender_rows,
+    parse_winning_vendors,
     resolve_target_date,
     slash_date_string,
+    write_workbook,
 )
 
 
@@ -51,7 +57,7 @@ AWARD_ROW_HTML = """
     <td>1,420,000</td>
     <td>001</td>
     <td></td>
-    <td>檢視</td>
+    <td><a href="/prkms/urlSelector/common/atm?pk=NzExOTA2MjE=">檢視</a></td>
   </tr>
 </table>
 """
@@ -71,7 +77,27 @@ FAILED_AWARD_ROW_HTML = """
     <td></td>
     <td></td>
     <td>001</td>
-    <td>檢視</td>
+    <td><a href="/prkms/urlSelector/common/nonAtm?pk=NzExNzQ0Njc=">檢視</a></td>
+  </tr>
+</table>
+"""
+
+AWARD_DETAIL_HTML = """
+<html>
+  <body>
+    <script>
+      $("span[id='spanItem[0].obtain[0].suppName']").html(bidderCnsToImg("第一廠商有限公司"));
+      $("span[id='spanItem[0].obtain[1].suppName']").html(bidderCnsToImg("第二廠商有限公司"));
+    </script>
+  </body>
+</html>
+"""
+
+FAILED_AWARD_DETAIL_HTML = """
+<table>
+  <tr>
+    <td>無法決標的理由</td>
+    <td>流標(無廠商投標或未達法定開標家數)</td>
   </tr>
 </table>
 """
@@ -121,6 +147,7 @@ class ExportPccLaborTendersTests(unittest.TestCase):
                 "1,420,000",
                 "001",
                 "",
+                detail_url="https://web.pcc.gov.tw/prkms/urlSelector/common/atm?pk=NzExOTA2MjE=",
             ),
         )
 
@@ -131,6 +158,79 @@ class ExportPccLaborTendersTests(unittest.TestCase):
         self.assertEqual(rows[0].award_amount, "")
         self.assertEqual(rows[0].award_notice, "")
         self.assertEqual(rows[0].failed_award, "001")
+        self.assertEqual(
+            rows[0].detail_url,
+            "https://web.pcc.gov.tw/prkms/urlSelector/common/nonAtm?pk=NzExNzQ0Njc=",
+        )
+
+    def test_parse_winning_vendors_from_detail_script(self) -> None:
+        self.assertEqual(parse_winning_vendors(AWARD_DETAIL_HTML), "第一廠商有限公司、第二廠商有限公司")
+
+    def test_parse_winning_vendors_returns_empty_when_missing(self) -> None:
+        self.assertEqual(parse_winning_vendors("<html></html>"), "")
+
+    def test_parse_failed_award_reason(self) -> None:
+        self.assertEqual(parse_failed_award_reason(FAILED_AWARD_DETAIL_HTML), "流標(無廠商投標或未達法定開標家數)")
+
+    def test_parse_failed_award_reason_returns_empty_when_missing(self) -> None:
+        self.assertEqual(parse_failed_award_reason("<table></table>"), "")
+
+    def test_award_record_rows_include_enriched_fields(self) -> None:
+        record = AwardRecord(
+            "機關",
+            "標案",
+            "115/05/01",
+            "100",
+            "001",
+            "",
+            winning_vendor="得標廠商",
+            failed_reason="無法決標理由",
+        )
+
+        self.assertEqual(record.as_awarded_row(), ["機關", "標案", "115/05/01", "得標廠商", "100", "001", ""])
+        self.assertEqual(record.as_failed_row(), ["機關", "標案", "115/05/01", "無法決標理由", "100", "001", ""])
+
+    def test_write_workbook_includes_award_detail_columns(self) -> None:
+        from tempfile import TemporaryDirectory
+
+        from openpyxl import load_workbook
+
+        with TemporaryDirectory() as tmp_dir:
+            output = Path(tmp_dir) / "out.xlsx"
+            write_workbook(
+                output,
+                [],
+                [
+                    AwardRecord(
+                        "機關",
+                        "標案",
+                        "115/05/01",
+                        "100",
+                        "001",
+                        "",
+                        winning_vendor="得標廠商",
+                    )
+                ],
+                [
+                    AwardRecord(
+                        "機關",
+                        "標案",
+                        "115/05/01",
+                        "",
+                        "",
+                        "001",
+                        failed_reason="流標",
+                    )
+                ],
+            )
+
+            workbook = load_workbook(output)
+            awarded = workbook["keyword_awarded_tenders"]
+            failed = workbook["keyword_failed_awards"]
+            self.assertEqual([cell.value for cell in awarded[1]], AWARDED_HEADERS)
+            self.assertEqual(awarded["D2"].value, "得標廠商")
+            self.assertEqual([cell.value for cell in failed[1]], FAILED_AWARD_HEADERS)
+            self.assertEqual(failed["D2"].value, "流標")
 
     def test_parse_next_page_links(self) -> None:
         html = """

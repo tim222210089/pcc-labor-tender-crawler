@@ -85,6 +85,8 @@ class RunDailyWorkflowTests(unittest.TestCase):
             patch("run_daily_workflow.filter_labor_records", return_value=[]),
             patch("run_daily_workflow.filter_keyword_matches", return_value=[]),
             patch("run_daily_workflow.fetch_award_records", return_value=[]) as fetch_awards,
+            patch("run_daily_workflow.enrich_awarded_records_with_vendors", return_value=[]),
+            patch("run_daily_workflow.enrich_failed_awards_with_reasons", return_value=[]),
             patch("run_daily_workflow.write_workbook") as write_workbook,
         ):
             result = export_excel("today", Path("out.xlsx"), "委託")

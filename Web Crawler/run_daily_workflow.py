@@ -17,6 +17,8 @@ from typing import Any
 import requests
 
 from export_pcc_labor_tenders import (
+    enrich_awarded_records_with_vendors,
+    enrich_failed_awards_with_reasons,
     fetch_all_records,
     fetch_award_records,
     filter_keyword_matches,
@@ -78,6 +80,8 @@ def export_excel(raw_date: str, output_path: Path, keywords_raw: str) -> ExportR
     failed_rows = fetch_award_records(target_date, "TENDER_STATUS_2")
     keyword_awarded_rows = filter_keyword_matches(awarded_rows, keywords)
     keyword_failed_rows = filter_keyword_matches(failed_rows, keywords)
+    keyword_awarded_rows = enrich_awarded_records_with_vendors(keyword_awarded_rows)
+    keyword_failed_rows = enrich_failed_awards_with_reasons(keyword_failed_rows)
     write_workbook(output_path, keyword_records, keyword_awarded_rows, keyword_failed_rows)
 
     return ExportResult(
