@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   crawl-upload-notify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: Web Crawler
@@ -45,6 +45,13 @@ jobs:
 
       - name: Install dependencies
         run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Diagnose PCC connectivity
+        shell: bash
+        run: |
+          getent ahosts web.pcc.gov.tw || true
+          curl -4 --connect-timeout 10 --max-time 20 --silent --show-error --output /dev/null --write-out 'pcc_ipv4_http=%{http_code}\n' https://web.pcc.gov.tw/ || true
+          curl -6 --connect-timeout 10 --max-time 20 --silent --show-error --output /dev/null --write-out 'pcc_ipv6_http=%{http_code}\n' https://web.pcc.gov.tw/ || true
 
       - name: Run tests
         run: python -m unittest -v
