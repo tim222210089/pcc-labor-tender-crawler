@@ -1,4 +1,4 @@
-name: PCC cloud network probe
+name: PCC actual query network probe
 on: workflow_dispatch
 permissions:
   contents: read
@@ -7,18 +7,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, macos-15-intel, ubuntu-24.04-arm]
+        os: [ubuntu-24.04, windows-2022, macos-15]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 4
     steps:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Test public PCC HTTPS
+      - name: Test actual query without redirect
         shell: python
         run: |
-          import socket, urllib.request
-          print(socket.getaddrinfo('web.pcc.gov.tw', 443, type=socket.SOCK_STREAM))
-          with urllib.request.urlopen('https://web.pcc.gov.tw/', timeout=15) as r:
-              print('pcc_http_status=', r.status)
-              print('pcc_body_bytes=', len(r.read(1024)))
+          import urllib.request, urllib.parse
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+          url = 'https://web.pcc.gov.tw/prkms/tender/common/advanced/readTenderAdvanced?' + urllib.parse.urlencode({'tenderType':'TENDER_DECLARATION','tenderWay':'TENDER_WAY_ALL_DECLARATION','dateType':'isNow','firstSearch':'true','searchType':'advanced','pageSize':'100'})
+          with urllib.request.build_opener(NoRedirect).open(url, timeout=25) as response:
+              print('query status:', response.status, 'bytes:', len(response.read()))
