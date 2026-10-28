@@ -11,10 +11,7 @@ on:
         options:
           - 'false'
           - 'true'
-  schedule:
-    # 06:45 Asia/Taipei every weekday. Fallback until external cron-job.org trigger is verified.
-    - cron: '45 22 * * 0-4'
-
+  
 permissions:
   contents: read
 
